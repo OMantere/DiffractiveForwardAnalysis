@@ -28,11 +28,15 @@ void reader( const char* filename = "output.root" )
     for ( unsigned int j = 0; j < evt.nPair; ++j ) {
       //cout << "  *) pair " << j << " has invariant mass = " << evt.Pair_mass[j] << endl;
 
-      if ( evt.Pair_extratracks0p5mm[j] != 0 ) continue;
-      if ( fabs( evt.KalmanVertexCand_z[j] ) > 15. ) continue;
-      if ( 1.-fabs( evt.Pair_dphi[j] )/M_PI > 0.009 ) continue;
-      if ( evt.Pair_mass[j] < 110. ) continue;
+      //if ( evt.Pair_extratracks0p5mm[j] != 0 ) continue;
+      //if ( fabs( evt.KalmanVertexCand_z[j] ) > 15. ) continue;
+      //if ( 1.-fabs( evt.Pair_dphi[j] )/M_PI > 0.009 ) continue;
+      //if ( evt.Pair_mass[j] < 110. ) continue;
 
+      cout << "extratracks: " << evt.Pair_extratracks0p5mm[j] << endl;
+      cout << "KalmanVertexCand_z: " << fabs( evt.KalmanVertexCand_z[j] ) << endl;
+      cout << "Pair_dphi: " << 1.-fabs( evt.Pair_dphi[j] )/M_PI << endl;
+      cout << "Pair_mass: " << evt.Pair_mass[j] << endl;
       cout << "CANDIDATE!!!" << endl;
 
       const unsigned int l1 = evt.Pair_lepton1[j], l2 = evt.Pair_lepton2[j];

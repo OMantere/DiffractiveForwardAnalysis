@@ -18,9 +18,9 @@ ggll_aod = cms.EDAnalyzer('GammaGammaLL',
     triggerResults = cms.InputTag('TriggerResults', '', 'HLT'),
 
     # Input collections
-    #muonTag = cms.InputTag("muons"), # RECO ; needs recompilation!
+    # muonTag = cms.InputTag("muons"), # RECO ; needs recompilation!
     muonTag = cms.InputTag("patMuons"), # PAT
-    #electronTag = cms.InputTag("gsfElectrons"), # RECO ; needs recompilation!
+    # electronTag = cms.InputTag("gsfElectrons"), # RECO ; needs recompilation!
     electronTag = cms.InputTag("patElectrons"), # PAT
     vertexTag = cms.InputTag('offlinePrimaryVertices'),
     trackTag = cms.InputTag('generalTracks'),

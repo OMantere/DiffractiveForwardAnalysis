@@ -2,7 +2,7 @@ import FWCore.ParameterSet.Config as cms
 
 process = cms.Process("ggll")
 
-runOnMC = False
+runOnMC = True
 useAOD = True # AOD or MiniAOD?
 
 #########################
@@ -27,7 +27,7 @@ process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
 #'/store/data/Run2016G/DoubleEG/AOD/23Sep2016-v1/100000/0042DBD3-BA8E-E611-919E-002481ACDAA8.root',
-'/store/data/Run2017C/DoubleMuon/AOD/12Sep2017-v1/10000/029F251F-B1A2-E711-AAC3-001E67792890.root',
+'file:/afs/cern.ch/user/j/jmantere/private/cms/CMSSW_9_2_3/src/fastsim2.root',
     ),
     #firstEvent = cms.untracked.uint32(0)
 )
@@ -118,7 +118,7 @@ process.ggll_aod.leptonsType = cms.string('Muon')
 #process.ggll_aod.leptonsType = cms.string('ElectronMuon')
 #process.ggll_aod.leptonsType = cms.string('Electron')
 process.ggll_aod.runOnMC = cms.bool(runOnMC)
-process.ggll_aod.fetchProtons = cms.bool(True)
+process.ggll_aod.fetchProtons = cms.bool(False)
 
 # E/gamma identification
 process.ggll_aod.eleIdLabels = cms.PSet(
@@ -136,12 +136,12 @@ process.ggll_aod.phoIdLabels = cms.PSet(
 
 # prepare the output file
 process.TFileService = cms.Service('TFileService',
-    fileName = cms.string('output.root'),
+    fileName = cms.string('ggll.root'),
     closeFileFast = cms.untracked.bool(True)
 )
 
 process.p = cms.Path(
-    process.hltFilter*
+    # process.hltFilter*
     process.egmPhotonIDSequence*
     process.egmGsfElectronIDSequence*
     process.ggll_aod

@@ -34,6 +34,7 @@ GammaGammaLL::GammaGammaLL( const edm::ParameterSet& iConfig ) :
   tree_( 0 ),
   fetchMuons_( false ), fetchElectrons_( false ),
   fetchProtons_       ( iConfig.getParameter<bool>( "fetchProtons" ) ),
+  usePileup_          ( iConfig.getParameter<bool>( "usePileup" ) ),
   hltMenuLabel_       ( iConfig.getParameter<std::string>( "HLTMenuTag" ) ),
   triggersList_       ( iConfig.getParameter<std::vector<std::string> >( "triggersList" ) ),
   triggerResultsToken_( consumes<edm::TriggerResults>                  ( iConfig.getParameter<edm::InputTag>( "triggerResults" ) ) ),
@@ -104,7 +105,7 @@ GammaGammaLL::GammaGammaLL( const edm::ParameterSet& iConfig ) :
   phoTightIdLabel_ = phoIdLabelSet.getParameter<edm::InputTag>( "tightLabel" ).encode();
 
   // Pileup reweighting utilities
-  if ( runOnMC_ ) {
+  if ( runOnMC_ && usePileup_ ) {
     lumiWeights_ = edm::LumiReWeighting(mcPileupFile_, dataPileupFile_, mcPileupPath_, dataPileupPath_ );
   }
 
@@ -125,26 +126,29 @@ void
 GammaGammaLL::lookAtTriggers( const edm::Event& iEvent, const edm::EventSetup& iSetup )
 {
   // Get the trigger information from the event
-  edm::Handle<edm::TriggerResults> hltResults;
-  iEvent.getByToken( triggerResultsToken_, hltResults);
-  const edm::TriggerNames& trigNames = iEvent.triggerNames(*hltResults);
+  //edm::Handle<edm::TriggerResults> hltResults;
+  //iEvent.getByToken( triggerResultsToken_, hltResults);
+  //const edm::TriggerNames& trigNames = iEvent.triggerNames(*hltResults);
 
-  std::ostringstream os;
-  os << "Trigger names: " << std::endl;
-  for ( unsigned int i = 0; i < trigNames.size(); ++i ) {
-    os << "--> " << trigNames.triggerNames().at( i) << std::endl;
-
-    const int trigNum = hlts_.TriggerNum(trigNames.triggerNames().at( i ) );
-    if ( trigNum<0) continue; // Trigger didn't match the interesting ones
-
-    evt_.HLT_Accept[trigNum] = hltResults->accept( i);
-
-    // extract prescale value for this path
-    if ( runOnMC_ ) { evt_.HLT_Prescl[trigNum] = 1.; continue; } //FIXME
-    int prescale_set = hltPrescale_.prescaleSet( iEvent, iSetup);
-    evt_.HLT_Prescl[trigNum] = (prescale_set<0) ? 0. : hltConfig_.prescaleValue(prescale_set, trigNames.triggerNames().at( i ) ); //FIXME
+  //std::ostringstream os;
+  //os << "Trigger names: " << std::endl;
+  for(unsigned int i = 0; i < evt_.MAX_HLT; i++) {
+      evt_.HLT_Prescl[i] = 1.;
   }
-  LogDebug( "GammaGammaLL" ) << os.str();
+  //for ( unsigned int i = 0; i < trigNames.size(); ++i ) {
+    //os << "--> " << trigNames.triggerNames().at( i) << std::endl;
+
+    //const int trigNum = hlts_.TriggerNum(trigNames.triggerNames().at( i ) );
+    //if ( trigNum<0) continue; // Trigger didn't match the interesting ones
+
+    //evt_.HLT_Accept[trigNum] = hltResults->accept( i);
+
+    //// extract prescale value for this path
+    //if ( runOnMC_ ) { evt_.HLT_Prescl[trigNum] = 1.; continue; } //FIXME
+    //int prescale_set = hltPrescale_.prescaleSet( iEvent, iSetup);
+    //evt_.HLT_Prescl[trigNum] = (prescale_set<0) ? 0. : hltConfig_.prescaleValue(prescale_set, trigNames.triggerNames().at( i ) ); //FIXME
+  //}
+  //LogDebug( "GammaGammaLL" ) << os.str();
 }
 
 // ------------ method called for each event  ------------
@@ -175,21 +179,23 @@ GammaGammaLL::analyze( const edm::Event& iEvent, const edm::EventSetup& iSetup )
     analyzeMCEventContent( iEvent );
 
     // Pileup information
-    edm::Handle<edm::View<PileupSummaryInfo> > pu_info;
-    iEvent.getByToken( pileupToken_, pu_info);
+    if( _usePileup ) {
+      edm::Handle<edm::View<PileupSummaryInfo> > pu_info;
+      iEvent.getByToken( pileupToken_, pu_info);
 
-    int npv0true = 0;
-    for ( unsigned int i = 0; i < pu_info->size(); ++i ) {
-      const edm::Ptr<PileupSummaryInfo> PVI = pu_info->ptrAt( i);
+      int npv0true = 0;
+      for ( unsigned int i = 0; i < pu_info->size(); ++i ) {
+        const edm::Ptr<PileupSummaryInfo> PVI = pu_info->ptrAt( i);
 
-      const int beamXing = PVI->getBunchCrossing(),
-                npvtrue = PVI->getTrueNumInteractions();
+        const int beamXing = PVI->getBunchCrossing(),
+                  npvtrue = PVI->getTrueNumInteractions();
 
-      if ( beamXing == 0) npv0true += npvtrue;
+        if ( beamXing == 0) npv0true += npvtrue;
+      }
+
+      evt_.Weight = lumiWeights_.weight( npv0true );
+      LogDebug( "GammaGammaLL" ) << "Passed Pileup retrieval stage";
     }
-
-    evt_.Weight = lumiWeights_.weight( npv0true );
-    LogDebug( "GammaGammaLL" ) << "Passed Pileup retrieval stage";
   }
 
   muonsMomenta_.clear();
@@ -237,6 +243,7 @@ GammaGammaLL::analyzeMCEventContent( const edm::Event& iEvent )
 {
   edm::Handle<edm::View<reco::GenParticle> > genPartColl;
   iEvent.getByToken( genToken_, genPartColl );
+  std::cout << "Find GenParticles: " << genPartColl->size() << std::endl;
 
   for ( unsigned int i = 0; i < genPartColl->size(); ++i ) {
     const edm::Ptr<reco::GenParticle> genPart = genPartColl->ptrAt( i );
@@ -345,6 +352,7 @@ GammaGammaLL::fetchMuons( const edm::Event& iEvent )
 
   iEvent.getByToken( muonToken_, muonColl );
 
+  std::cout << "Find patMuons: " << muonColl->size() << std::endl;
   for ( unsigned int i = 0; i < muonColl->size() && evt_.nMuonCand < ggll::AnalysisEvent::MAX_MUONS; ++i ) {
     const edm::Ptr<pat::Muon> muon = muonColl->ptrAt( i);
 
