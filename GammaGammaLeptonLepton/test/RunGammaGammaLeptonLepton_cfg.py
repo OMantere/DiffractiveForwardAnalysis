@@ -9,6 +9,7 @@ useAOD = True # AOD or MiniAOD?
 #    General options    #
 #########################
 
+
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.options   = cms.untracked.PSet(
     #wantSummary = cms.untracked.bool(True),
@@ -16,9 +17,18 @@ process.options   = cms.untracked.PSet(
     allowUnscheduled = cms.untracked.bool(True),
 )
 
+process.MessageLogger = cms.Service("MessageLogger",
+       destinations   = cms.untracked.vstring(
+                                               'cerr'
+                    ),
+       cerr           = cms.untracked.PSet(
+                       threshold = cms.untracked.string('DEBUG')
+        )
+)
+
 #process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000) )
-process.MessageLogger.cerr.FwkReport.reportEvery = 1000
+# process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
 #########################
 #      Input files      #

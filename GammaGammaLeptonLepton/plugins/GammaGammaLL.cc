@@ -179,7 +179,7 @@ GammaGammaLL::analyze( const edm::Event& iEvent, const edm::EventSetup& iSetup )
     analyzeMCEventContent( iEvent );
 
     // Pileup information
-    if( _usePileup ) {
+    if( usePileup_ ) {
       edm::Handle<edm::View<PileupSummaryInfo> > pu_info;
       iEvent.getByToken( pileupToken_, pu_info);
 
@@ -208,10 +208,10 @@ GammaGammaLL::analyze( const edm::Event& iEvent, const edm::EventSetup& iSetup )
 
   fetchPhotons( iEvent );
 
-  newVertexInfoRetrieval( iEvent );
+  newVertexInfoRetrieval( iEvent ); // Find pairs
 
   if ( !foundPairInEvent_ ) {
-    //LogDebug( "GammaGammaLL" ) << "No pair retrieved in event";
+    LogDebug( "GammaGammaLL" ) << "No pair retrieved in event";
     return; // avoid to unpack RP/jet/MET if no dilepton candidate has been found
   }
 
@@ -667,7 +667,7 @@ GammaGammaLL::newVertexInfoRetrieval( const edm::Event& iEvent )
 }
 
 bool
-GammaGammaLL::newTracksInfoRetrieval( int l1id, int l2id )
+GammaGammaLL::newTracksInfoRetrieval( int l1id, int l2id ) // This is where the magic happens (a pair is confirmed by the return value)
 {
   double l1cand_pt, l2cand_pt;
   std::vector<reco::TransientTrack> translepttrks;
@@ -701,9 +701,15 @@ GammaGammaLL::newTracksInfoRetrieval( int l1id, int l2id )
   TransientVertex dileptonVertex;
   try {
     dileptonVertex = fitter.vertex(translepttrks);
-  } catch (...) { return false; }
+  } catch (...) { 
+      LogDebug("KalmanVertexFitter.vertex() threw error");
+      return false; 
+  }
 
-  if ( !dileptonVertex.isValid() ) return false; // only keep the pairs with valid vertex
+  if ( !dileptonVertex.isValid() ) {
+      LogDebug("Fitted vertex not valid, discarding pair");
+      return false; // only keep the pairs with valid vertex
+  }
 
   evt_.KalmanVertexCand_x[evt_.nPair] = dileptonVertex.position().x();
   evt_.KalmanVertexCand_y[evt_.nPair] = dileptonVertex.position().y();
@@ -770,6 +776,9 @@ GammaGammaLL::newTracksInfoRetrieval( int l1id, int l2id )
   evt_.ClosestHighPurityExtraTrack_vtxdxyz[evt_.nPair] = closesthighpuritytrkdxyz;
   evt_.ClosestHighPurityExtraTrack_id[evt_.nPair] = closesthighpuritytrkid;
 
+
+  // Do some Four-momentum stuff unrelated to the above
+  // Seems like we're calculating combined values for the pair such as pT, mass etc.
   TLorentzVector l1, l2;
   switch (leptonsType_ ) {
     case ggll::ElectronMuon: {

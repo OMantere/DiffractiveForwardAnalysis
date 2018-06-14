@@ -6,6 +6,7 @@ ggll_aod = cms.EDAnalyzer('GammaGammaLL',
     #maxExtraTracks = cms.untracked.uint32(10000),
     sqrtS = cms.double(13.e3), # in GeV
     fetchProtons = cms.bool(False), # retrieve the TOTEM/PPS info from the files (data only!)
+    usePileup = cms.bool(False),
     printCandidates = cms.bool(False),
 
     # MC tweaks

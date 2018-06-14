@@ -137,6 +137,7 @@ class GammaGammaLL : public edm::one::EDAnalyzer<edm::one::SharedResources> {
       ggll::AnalysisEvent evt_;
 
       bool fetchMuons_, fetchElectrons_, fetchProtons_;
+      bool usePileup_;
       bool foundPairInEvent_;
 
       // Input tags

@@ -15,6 +15,9 @@ void reader( const char* filename = "output.root" )
   evt.load( tree, ggll::DiMuon, false );
 
   TH1D h_pair_mass( "h_pair_mass", "m(#mu^{+}#mu^{-})\\Events\\GeV?.2f", 200, 100., 2100. );
+  TH1D h_pair_dphi( "h_pair_dphi", "m(#mu^{+}#mu^{-})", 200, 0., 1. );
+  TH1D h_extratracks( "h_pair_dphi", "m(#mu^{+}#mu^{-})", 200, 0.,  );
+  TH1D ( "", "m(#mu^{+}#mu^{-})", 200, 0., 1. );
 
   for ( unsigned long long i = 0; i < tree->GetEntriesFast(); ++i ) {
     tree->GetEntry( i );
