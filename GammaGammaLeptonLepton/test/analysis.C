@@ -8,7 +8,7 @@
 
 using namespace std;
 
-double Wgg, Wmiss, delta_eta, deltaR, delta_phi;
+double Wgg, Wmiss, delta_eta, deltaR, delta_phi, mreco;
 
 bool paper_cuts() {
     return Wgg > 200
@@ -16,6 +16,10 @@ bool paper_cuts() {
            && deltaR < 3.
            && delta_eta < 2.1;
 };
+
+bool my_cuts() {
+    return 100 < mreco && mreco < 250;
+}
 
 void analysis(
         const char *signalfile = "computed.root",
@@ -30,13 +34,14 @@ void analysis(
     tree1->SetBranchAddress("Wmiss", &Wmiss);
     tree1->SetBranchAddress("pair_eta_diff", &delta_eta);
     tree1->SetBranchAddress("deltaR", &deltaR);
+    tree1->SetBranchAddress("mreco", &mreco);
     int pass1 = 0;
     int pass2 = 0;
 
     int N1 = tree1->GetEntriesFast();
     for (int i = 0; i < N1; i++) {
         tree1->GetEntry(i);
-        if(paper_cuts()) pass1++;
+        if(paper_cuts() && my_cuts()) pass1++;
     }
 
     tree2->SetBranchAddress("pair_dphi", &delta_phi);
@@ -44,10 +49,11 @@ void analysis(
     tree2->SetBranchAddress("Wmiss", &Wmiss);
     tree2->SetBranchAddress("pair_eta_diff", &delta_eta);
     tree2->SetBranchAddress("deltaR", &deltaR);
+    tree2->SetBranchAddress("mreco", &mreco);
     int N2 = tree2->GetEntriesFast();
     for (int i = 0; i < N2; i++) {
         tree2->GetEntry(i);
-        if(paper_cuts()) pass2++;
+        if(paper_cuts() && my_cuts()) pass2++;
     }
 
     double signal_crossx = 0.2396;
