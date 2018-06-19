@@ -49,8 +49,10 @@ namespace ggll
       static constexpr unsigned int MAX_GENMU = 25;
       /// Maximum number of generator level electrons per event
       static constexpr unsigned int MAX_GENELE = 25;
+      /// Maximum number of generator level sleptons per event
+      static constexpr unsigned int MAX_GENSLEPTONS = 2;
       /// Maximum number of generator level photons per event
-      static constexpr unsigned int MAX_GENPHO = 10;
+      static constexpr unsigned int MAX_GENPHO = 2;
       /// Maximum number of generator level protons per event
       static constexpr unsigned int MAX_GENPRO = 8;
       /// Maximum number of jets per event
@@ -99,7 +101,7 @@ namespace ggll
       unsigned int nGenPhotCand; int nGenPhotCandOutOfAccept;
       double GenPhotCand_pt[MAX_GENPHO], GenPhotCand_eta[MAX_GENPHO], GenPhotCand_phi[MAX_GENPHO], GenPhotCand_e[MAX_GENPHO];
       unsigned int nGenProtCand;
-      double GenProtCand_pt[MAX_GENPRO], GenProtCand_eta[MAX_GENPRO], GenProtCand_phi[MAX_GENPRO], GenProtCand_e[MAX_GENPHO];
+      double GenProtCand_pt[MAX_GENPRO], GenProtCand_eta[MAX_GENPRO], GenProtCand_phi[MAX_GENPRO], GenProtCand_e[MAX_GENPRO];
       int GenProtCand_status[MAX_GENPRO];
 
       // Pileup reweighting quantities

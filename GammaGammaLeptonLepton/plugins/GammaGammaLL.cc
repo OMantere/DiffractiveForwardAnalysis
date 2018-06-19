@@ -244,7 +244,7 @@ GammaGammaLL::analyzeMCEventContent( const edm::Event& iEvent )
   for ( unsigned int i = 0; i < genPartColl->size(); ++i ) {
     const edm::Ptr<reco::GenParticle> genPart = genPartColl->ptrAt( i );
 
-    if ( fabs(genPart->pdgId()) == 2000013) {
+    if ( fabs(genPart->pdgId()) == 2000013 && evt_.nGenRMuonCand < ggll::AnalysisEvent::MAX_GENSLEPTONS) {
       evt_.GenRMuonCand_pt[evt_.nGenRMuonCand] = genPart->pt();
       evt_.GenRMuonCand_eta[evt_.nGenRMuonCand] = genPart->eta();
       evt_.GenRMuonCand_phi[evt_.nGenRMuonCand] = genPart->phi();
@@ -252,7 +252,7 @@ GammaGammaLL::analyzeMCEventContent( const edm::Event& iEvent )
       evt_.nGenRMuonCand++;
     }
 
-    if ( fabs(genPart->pdgId()) == 2000011) {
+    if ( fabs(genPart->pdgId()) == 2000011 && evt_.nGenRMuonCand < ggll::AnalysisEvent::MAX_GENSLEPTONS) {
       evt_.GenREleCand_pt[evt_.nGenREleCand] = genPart->pt();
       evt_.GenREleCand_eta[evt_.nGenREleCand] = genPart->eta();
       evt_.GenREleCand_phi[evt_.nGenREleCand] = genPart->phi();
@@ -260,7 +260,24 @@ GammaGammaLL::analyzeMCEventContent( const edm::Event& iEvent )
       evt_.nGenREleCand++;
     }
 
+    // generated inner photon line
+    if ( genPart->pdgId() == 22 && evt_.nGenPhotCand < ggll::AnalysisEvent::MAX_GENPHO ) {
+      evt_.GenPhotCand_e[evt_.nGenPhotCand] = genPart->energy();
+      evt_.GenPhotCand_pt[evt_.nGenPhotCand] = genPart->pt();
+      evt_.GenPhotCand_eta[evt_.nGenPhotCand] = genPart->eta();
+      evt_.GenPhotCand_phi[evt_.nGenPhotCand] = genPart->phi();
+      evt_.nGenPhotCand++;
+    }
+
     if ( !genPart->isPromptFinalState() ) continue;
+
+    if ( fabs(genPart->pdgId()) == 1000022) {
+      evt_.GenChi10Cand_pt[evt_.nGenChi10Cand] = genPart->pt();
+      evt_.GenChi10Cand_eta[evt_.nGenChi10Cand] = genPart->eta();
+      evt_.GenChi10Cand_phi[evt_.nGenChi10Cand] = genPart->phi();
+      evt_.GenChi10Cand_e[evt_.nGenChi10Cand] = genPart->energy();
+      evt_.nGenChi10Cand++;
+    }
 
     // check the particles out of acceptance
     if ( genPart->pt() < minPtMC_ || ( minEtaMC_ != -1. && fabs( genPart->eta() ) > minEtaMC_ ) ) {
@@ -298,14 +315,6 @@ GammaGammaLL::analyzeMCEventContent( const edm::Event& iEvent )
       evt_.nGenEleCand++;
     }
 
-    // generated inner photon line
-    if ( genPart->pdgId() == 22 && evt_.nGenPhotCand < ggll::AnalysisEvent::MAX_GENPHO ) {
-      evt_.GenPhotCand_e[evt_.nGenPhotCand] = genPart->energy();
-      evt_.GenPhotCand_pt[evt_.nGenPhotCand] = genPart->pt();
-      evt_.GenPhotCand_eta[evt_.nGenPhotCand] = genPart->eta();
-      evt_.GenPhotCand_phi[evt_.nGenPhotCand] = genPart->phi();
-      evt_.nGenPhotCand++;
-    }
     if ( genPart->pdgId() == 2212 && fabs( genPart->pz() ) > 3000. ) {
       // Kinematic quantities computation
       // xi = fractional momentum loss
@@ -917,3 +926,4 @@ GammaGammaLL::fillDescriptions( edm::ConfigurationDescriptions& descriptions ) {
 
 //define this as a plug-in
 DEFINE_FWK_MODULE( GammaGammaLL );
+
