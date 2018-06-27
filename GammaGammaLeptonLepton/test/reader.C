@@ -24,7 +24,7 @@ double smeared(double q) {
   return q + smear(e2);
 }
 
-void reader( const char* filename = "../ggll_ww.root", const char* filename2 = "computed_ww.root")
+void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/dataFold/GammaGammaOutput/wwllbgKristianoutput.root", const char* filename2 = "computedwwllbgKristian.root")
 {
   TFile file( filename);
   auto tree = dynamic_cast<TTree*>( file.Get( "ggll_aod/ntp1") );
@@ -70,9 +70,9 @@ void reader( const char* filename = "../ggll_ww.root", const char* filename2 = "
       cout << "  *) " << hlt << endl;
     }*/
 
-    TLorentzVector P1(0, 0, sqrt(pow(6500, 2) - pow(0.938, 2)), 6500);
+    TLorentzVector P1(0, 0, sqrt(pow(6500, 2) - pow(0.938, 2)), 6500); // P1, P2: Beam protons of energy 6500
     TLorentzVector P2(0, 0,-sqrt(pow(6500, 2) - pow(0.938, 2)), 6500);
-    TLorentzVector p1, p2;
+    TLorentzVector p1, p2; // p1, p2: measured protons
     TLorentzVector com(0, 0, 0, 13.e3);
     cout << "Proton count in this event: " << evt.nGenProtCand << endl;
     p1.SetPtEtaPhiE(evt.GenProtCand_pt[0], evt.GenProtCand_eta[0], evt.GenProtCand_phi[0], evt.GenProtCand_e[0]);
@@ -89,6 +89,7 @@ void reader( const char* filename = "../ggll_ww.root", const char* filename2 = "
       if ( fabs( evt.KalmanVertexCand_z[j] ) > 15. ) continue;
       //if ( 1.-fabs( evt.Pair_dphi[j] )/M_PI > 0.009 ) continue;
       //if ( evt.Pair_mass[j] < 110. ) continue;
+
 
       const unsigned int l1 = evt.Pair_lepton1[j], l2 = evt.Pair_lepton2[j];
       const double El1 = evt.MuonCand_e[l1];
@@ -109,10 +110,10 @@ void reader( const char* filename = "../ggll_ww.root", const char* filename2 = "
 //      pg2.SetPtEtaPhiE(evt.GenPhotCand_pt[1], evt.GenPhotCand_eta[1], evt.GenPhotCand_phi[1], evt.GenPhotCand_e[1]);
       pg1 = P1 - p1;
       pg2 = P2 - p2;
-      cout << "Gamma 2 pZ: " << pg2.Z() << endl;
-      cout << "Gamma 2 E: " << pg2.E() << endl;
-      cout << "GenLep 1 E: " << pl1g.E() << endl;
-      cout << "GenLep 2 E: " << pl2g.E() << endl;
+     // cout << "Gamma 2 pZ: " << pg2.Z() << endl;
+     // cout << "Gamma 2 E: " << pg2.E() << endl;
+     // cout << "GenLep 1 E: " << pl1g.E() << endl;
+     // cout << "GenLep 2 E: " << pl2g.E() << endl;
       Wgg = 2 * sqrt(pg1.E()*pg2.E());
       const TLorentzVector lep_pair = pl1 + pl2;
       const TLorentzVector gen_lep_pair = pl1g + pl2g;
@@ -141,7 +142,14 @@ void reader( const char* filename = "../ggll_ww.root", const char* filename2 = "
       double mreco2 = 2 * mreco;
       double eta1 = evt.MuonCand_eta[l1];
       double eta2 = evt.MuonCand_eta[l2];
+      double ptMiss = sqrt(p_miss.Px()*p_miss.Px() + p_miss.Py()*p_miss.Py()); // Missing transfers momentum
+      double ptTot = sqrt(p1.Px()*p1.Px() + p1.Py()*p1.Py()) + sqrt(p2.Px()*p2.Px() + p2.Px()*p2.Px()); // Total Pt, calculated from diffracted protons 
+      //cout << "ptMiss: " << ptMiss << endl;
+      
+      
       double deltaR = sqrt(pow(evt.MuonCand_eta[l2] - evt.MuonCand_eta[l1], 2) + pow(evt.MuonCand_phi[l2] - evt.MuonCand_phi[l1], 2));
+ 
+
       tree2->Branch("Wgg", &Wgg);
       tree2->Branch("Wmiss", &Wmiss);
       tree2->Branch("Emiss", &Emiss);
@@ -164,7 +172,8 @@ void reader( const char* filename = "../ggll_ww.root", const char* filename2 = "
       tree2->Branch("eta1", &eta1);
       tree2->Branch("eta2", &eta2);
       tree2->Branch("deltaR", &deltaR);
-
+      tree2->Branch("ptMiss", &ptMiss);
+      tree2->Branch("ptTot", &ptTot);
 //      h_pair_mass.Fill( evt.Pair_mass[j] );
 //      h_extratracks.Fill( evt.Pair_extratracks0p5mm[j] );
 //      h_pair_dphi.Fill( evt.Pair_dphi[j] );

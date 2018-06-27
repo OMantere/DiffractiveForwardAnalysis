@@ -21,7 +21,8 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000) )
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
 #'/store/data/Run2016G/DoubleEG/AOD/23Sep2016-v1/100000/0042DBD3-BA8E-E611-919E-002481ACDAA8.root',
-'file:/afs/cern.ch/user/j/jmantere/private/cms/CMSSW_9_2_3/src/ww_1k.root',
+#'file:/afs/cern.ch/user/j/jmantere/private/cms/CMSSW_9_2_3/src/ww_1k.root',
+'file:/afs/cern.ch/user/k/karjas/private/CMSSW/dataFold/Events/wwllbg.root'
     ),
     #firstEvent = cms.untracked.uint32(0)
 )
@@ -117,7 +118,7 @@ process.ggll_aod.fetchProtons = cms.bool(False)
 # E/gamma identification
 process.ggll_aod.eleIdLabels = cms.PSet(
     mediumLabel = cms.InputTag('mvaEleID-Spring16-GeneralPurpose-V1-wp90'),
-    tightLabel = cms.InputTag('mvaEleID-Spring16-GeneralPurpose-V1-wp80'),
+       tightLabel = cms.InputTag('mvaEleID-Spring16-GeneralPurpose-V1-wp80'),
 )
 process.ggll_aod.phoIdLabels = cms.PSet(
     mediumLabel = cms.InputTag('mvaPhoID-Spring16-nonTrig-V1-wp90'),
@@ -130,7 +131,7 @@ process.ggll_aod.phoIdLabels = cms.PSet(
 
 # prepare the output file
 process.TFileService = cms.Service('TFileService',
-    fileName = cms.string('ggll_ww.root'),
+    fileName = cms.string('/afs/cern.ch/user/k/karjas/private/CMSSW/dataFold/GammaGammaOutput/wwllbgKristianoutput.root'),
     closeFileFast = cms.untracked.bool(True)
 )
 
