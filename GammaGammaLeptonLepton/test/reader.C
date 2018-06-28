@@ -74,16 +74,16 @@ void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/da
     TLorentzVector P2(0, 0,-sqrt(pow(6500, 2) - pow(0.938, 2)), 6500);
     TLorentzVector p1, p2; // p1, p2: measured protons
     TLorentzVector com(0, 0, 0, 13.e3);
-    cout << "Proton count in this event: " << evt.nGenProtCand << endl;
     p1.SetPtEtaPhiE(evt.GenProtCand_pt[0], evt.GenProtCand_eta[0], evt.GenProtCand_phi[0], evt.GenProtCand_e[0]);
     p2.SetPtEtaPhiE(evt.GenProtCand_pt[1], evt.GenProtCand_eta[1], evt.GenProtCand_phi[1], evt.GenProtCand_e[1]);
-    cout << "Proton 1 pz: " << p1.Z() << endl;
-    cout << "Proton 2 pz: " << p2.Z() << endl;
-    cout << "New proton pair mass: " << (p1+p2).M() << endl;
 
-    //cout << "- dilepton pairs:" << endl;
     for ( unsigned int j = 0; j < evt.nPair; ++j ) {
-      //cout << "  *) pair " << j << " has invariant mass = " << evt.Pair_mass[j] << endl;
+
+      // Lets do acceptance cuts
+//      double pt_acc = 7;
+//      double eta_acc = 2.5;
+//      if(evt.MuonCand_eta[l1] > eta_acc || evt.MuonCand_eta[l2] > eta_acc || evt.MuonCand_pt[l1] < pt_acc || evt.MuonCand_pt[l2] < pt_acc)
+//        continue;
 
       //if ( evt.Pair_extratracks0p5mm[j] != 0 ) continue;
       if ( fabs( evt.KalmanVertexCand_z[j] ) > 15. ) continue;
@@ -97,7 +97,6 @@ void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/da
 
       xip = ( evt.MuonCand_pt[l1]*exp( +evt.MuonCand_eta[l1] ) + evt.MuonCand_pt[l2]*exp( +evt.MuonCand_eta[l2] ) ) / 13.e3;
       xim = ( evt.MuonCand_pt[l1]*exp( -evt.MuonCand_eta[l1] ) + evt.MuonCand_pt[l2]*exp( -evt.MuonCand_eta[l2] ) ) / 13.e3;
-      cout << "central system xip/xim = " << xip << " / " << xim << endl;
 
       TLorentzVector pl1, pl2, pg1, pg2, pl1g, pl2g;
       pl1g.SetPtEtaPhiE(evt.GenMuonCand_pt[0], evt.GenMuonCand_eta[0], evt.GenMuonCand_phi[0], evt.GenMuonCand_e[0]);
@@ -110,10 +109,6 @@ void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/da
 //      pg2.SetPtEtaPhiE(evt.GenPhotCand_pt[1], evt.GenPhotCand_eta[1], evt.GenPhotCand_phi[1], evt.GenPhotCand_e[1]);
       pg1 = P1 - p1;
       pg2 = P2 - p2;
-     // cout << "Gamma 2 pZ: " << pg2.Z() << endl;
-     // cout << "Gamma 2 E: " << pg2.E() << endl;
-     // cout << "GenLep 1 E: " << pl1g.E() << endl;
-     // cout << "GenLep 2 E: " << pl2g.E() << endl;
       Wgg = 2 * sqrt(pg1.E()*pg2.E());
       const TLorentzVector lep_pair = pl1 + pl2;
       const TLorentzVector gen_lep_pair = pl1g + pl2g;
@@ -144,8 +139,7 @@ void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/da
       double eta2 = evt.MuonCand_eta[l2];
       double ptMiss = sqrt(p_miss.Px()*p_miss.Px() + p_miss.Py()*p_miss.Py()); // Missing transfers momentum
       double ptTot = sqrt(p1.Px()*p1.Px() + p1.Py()*p1.Py()) + sqrt(p2.Px()*p2.Px() + p2.Px()*p2.Px()); // Total Pt, calculated from diffracted protons 
-      //cout << "ptMiss: " << ptMiss << endl;
-      
+
       
       double deltaR = sqrt(pow(evt.MuonCand_eta[l2] - evt.MuonCand_eta[l1], 2) + pow(evt.MuonCand_phi[l2] - evt.MuonCand_phi[l1], 2));
  

@@ -118,14 +118,14 @@ TCanvas *draw_histos(TCanvas *c,
     
     hMEs[id]->SetName(name);
     hMEs[id]->SetLineColor(color);
-    hMEs[id]->Draw("HIST C SAME");
+    hMEs[id]->Draw("HIST SAME");
     hMEs[id]->SetXTitle("[GeV]");
   //  hMEs[id]->SetFillColor(color);
     c->cd(3);
 
     hptMisses[id]->SetName(name);
     hptMisses[id]->SetLineColor(color);
-    hptMisses[id]->Draw("HIST C SAME");
+    hptMisses[id]->Draw("HIST SAME");
     hptMisses[id]->SetXTitle("[GeV]");
 //    hptMisses[id]->SetFillColor(color);
     c->cd(4);
@@ -133,14 +133,14 @@ TCanvas *draw_histos(TCanvas *c,
     hptTots[id]->SetName(name);
     hptTots[id]->SetLineColor(color);
  //   hptTots[id]->SetFillColor(color);
-    hptTots[id]->Draw("HIST C SAME");
+    hptTots[id]->Draw("HIST SAME");
     hptTots[id]->SetXTitle("[GeV]");
 
     c->cd(5);
 
     hWgg[id]->SetName(name);
     hWgg[id]->SetLineColor(color);
-    hWgg[id]->Draw("HIST C SAME");
+    hWgg[id]->Draw("HIST SAME");
     hWgg[id]->SetXTitle("[GeV]");
 
     delete[] name;
@@ -200,7 +200,7 @@ void combinedHisto(){
        hptMisses[i] = new TH1D("Missing PT","Missing PT",10,0,400);
        hptTots[i] = new TH1D("PT protons","PT of protons",10,0,10);
        hWgg[i] = new TH1D("Wgg", "Wgg",30,0,1500);
-       c = draw_histos(c,hmasses,hMEs,hptMisses,hptTots,hWgg,  output, name, i, xsec);
+       c = draw_histos(c,hmasses,hMEs,hptMisses,hptTots,hWgg, output, name, i, xsec);
         
        char *name_ =str2char(name);
        legend->AddEntry(hmasses[i],name_);
@@ -210,6 +210,7 @@ void combinedHisto(){
     }
     c->cd(6); 
     legend->Draw();
+    c->Print("c.pdf");
     //c->BuildLegend();
 
     return;
