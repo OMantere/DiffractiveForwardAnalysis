@@ -5,6 +5,26 @@
 #include "TLorentzVector.h"
 
 #include <iostream>
+#include <algorithm>
+#include <fstream>
+#include <iterator>
+#include <iostream>
+#include <vector>
+#include <string>
+
+#include <time.h>
+
+clock_t start = clock(), diff;
+
+void start_time() {
+    start = clock();
+}
+
+void end_time() {
+    diff = clock() - start;
+    int msec = diff * 1000 / CLOCKS_PER_SEC;
+    printf("Time taken %d seconds %d milliseconds\n", msec/1000, msec%1000);
+}
 
 using namespace std;
 
@@ -24,18 +44,65 @@ double smeared(double q) {
   return q + smear(e2);
 }
 
-void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/dataFold/GammaGammaOutput/wwllbgKristianoutput.root", const char* filename2 = "computedwwllbgKristian.root")
+char delimiter = ',';
+int max_events = 10000;
+int max_vars = 50;
+int n_vars = 0;
+int n_rows = 0;
+vector<vector<double>> var_v(max_events, vector<double>(max_vars));
+std::map<string, int> var_map;
+vector<std::pair<string, int>> keypairs;
+vector<char*> keys;
+
+void store_var(string name, double val) {
+  if(var_map.count(name) == 0) {
+    var_map.insert(std::pair<string,int>(name,n_vars));
+    n_vars++;
+  }
+  var_v[n_rows][var_map.find(name)->second] = val;
+}
+
+void write_csv(const char* csv_filename) {
+  ofstream ofs(csv_filename, ofstream::out); 
+  for(int j = 0; j < n_vars; j++) {
+    ofs << keys[j] << delimiter << "\n";
+  }
+  for(int i = 0; i < n_rows; i++) {
+    for(int j = 0; j < n_vars; j++) {
+        ofs << var_v[i][j] << delimiter << "\n";
+    }
+  }
+  ofs.close();
+}
+
+void reader(const char* c_name = "elastic")
 {
+  string name(c_name);
+  string cfilename = "../ggll_"+name+".root";
+  string cfilename2 = "computed_"+name+".root";
+  string ccsv_filename= name+".root";
+  const char* filename = cfilename.c_str();
+  const char* filename2 = cfilename2.c_str();
+  const char* csv_filename=ccsv_filename.c_str();
   TFile file( filename);
   auto tree = dynamic_cast<TTree*>( file.Get( "ggll_aod/ntp1") );
   int N = tree->GetEntriesFast();
   ggll::AnalysisEvent evt;
-  evt.load( tree, ggll::DiMuon, true );
 
-  TFile file2(filename2, "recreate");
-  auto tree2 = new TTree("computed", "Computed quantities from the ROOT analysis");
-  auto newtree1 = new TTree("ggll", "The AnalysisEvent from GGLL");
-  evt.attach(newtree1, ggll::DiMuon, true);
+  string type = "Muon";
+//  if(filename.find("e.root") != string::npos)
+//    type = "Electron";
+
+  if(type == "Muon")
+    evt.load( tree, ggll::DiMuon, true );
+  else
+    evt.load( tree, ggll::DiElectron, true );
+
+//  auto newtree1 = new TTree("ggll", "The AnalysisEvent from GGLL");
+//  if(type == "Electron")
+//    evt.attach(newtree1, ggll::DiElectron, true);
+//  else
+//    evt.attach(newtree1, ggll::DiMuon, true);
 
 //  TH1D h_pair_mass( "h_pair_mass", "m(#mu^{+}#mu^{-})\\Events\\GeV?.2f", 200, 0., 1000. );
 //  TH1D h_pair_dphi( "h_pair_dphi", "m(#mu^{+}#mu^{-})", 200, -1. * M_PI, 1. * M_PI );
@@ -77,6 +144,7 @@ void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/da
     p1.SetPtEtaPhiE(evt.GenProtCand_pt[0], evt.GenProtCand_eta[0], evt.GenProtCand_phi[0], evt.GenProtCand_e[0]);
     p2.SetPtEtaPhiE(evt.GenProtCand_pt[1], evt.GenProtCand_eta[1], evt.GenProtCand_phi[1], evt.GenProtCand_e[1]);
 
+
     for ( unsigned int j = 0; j < evt.nPair; ++j ) {
 
       // Lets do acceptance cuts
@@ -92,18 +160,28 @@ void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/da
 
 
       const unsigned int l1 = evt.Pair_lepton1[j], l2 = evt.Pair_lepton2[j];
-      const double El1 = evt.MuonCand_e[l1];
-      const double El2 = evt.MuonCand_e[l2];
-
-      xip = ( evt.MuonCand_pt[l1]*exp( +evt.MuonCand_eta[l1] ) + evt.MuonCand_pt[l2]*exp( +evt.MuonCand_eta[l2] ) ) / 13.e3;
-      xim = ( evt.MuonCand_pt[l1]*exp( -evt.MuonCand_eta[l1] ) + evt.MuonCand_pt[l2]*exp( -evt.MuonCand_eta[l2] ) ) / 13.e3;
-
+      double El1, El2;
       TLorentzVector pl1, pl2, pg1, pg2, pl1g, pl2g;
-      pl1g.SetPtEtaPhiE(evt.GenMuonCand_pt[0], evt.GenMuonCand_eta[0], evt.GenMuonCand_phi[0], evt.GenMuonCand_e[0]);
-      pl2g.SetPtEtaPhiE(evt.GenMuonCand_pt[1], evt.GenMuonCand_eta[1], evt.GenMuonCand_phi[1], evt.GenMuonCand_e[1]);
-      pl1.SetPtEtaPhiE(evt.MuonCand_pt[l1], evt.MuonCand_eta[l1], evt.MuonCand_phi[l1], evt.MuonCand_e[l1]);
-      pl2.SetPtEtaPhiE(evt.MuonCand_pt[l2], evt.MuonCand_eta[l2], evt.MuonCand_phi[l2], evt.MuonCand_e[l2]);
-      double pair_eta_diff = fabs(evt.MuonCand_eta[l1] - evt.MuonCand_eta[l2]);
+      if(type == "Muon") {
+        El1 = evt.MuonCand_e[l1];
+        El2 = evt.MuonCand_e[l2];
+        xip = ( evt.MuonCand_pt[l1]*exp( +evt.MuonCand_eta[l1] ) + evt.MuonCand_pt[l2]*exp( +evt.MuonCand_eta[l2] ) ) / 13.e3;
+        xim = ( evt.MuonCand_pt[l1]*exp( -evt.MuonCand_eta[l1] ) + evt.MuonCand_pt[l2]*exp( -evt.MuonCand_eta[l2] ) ) / 13.e3;
+        pl1g.SetPtEtaPhiE(evt.GenMuonCand_pt[0], evt.GenMuonCand_eta[0], evt.GenMuonCand_phi[0], evt.GenMuonCand_e[0]);
+        pl2g.SetPtEtaPhiE(evt.GenMuonCand_pt[1], evt.GenMuonCand_eta[1], evt.GenMuonCand_phi[1], evt.GenMuonCand_e[1]);
+        pl1.SetPtEtaPhiE(evt.MuonCand_pt[l1], evt.MuonCand_eta[l1], evt.MuonCand_phi[l1], evt.MuonCand_e[l1]);
+        pl2.SetPtEtaPhiE(evt.MuonCand_pt[l2], evt.MuonCand_eta[l2], evt.MuonCand_phi[l2], evt.MuonCand_e[l2]);
+      } else {
+        El1 = evt.EleCand_e[l1];
+        El2 = evt.EleCand_e[l2];
+        xip = ( evt.EleCand_pt[l1]*exp( +evt.EleCand_eta[l1] ) + evt.EleCand_pt[l2]*exp( +evt.EleCand_eta[l2] ) ) / 13.e3;
+        xim = ( evt.EleCand_pt[l1]*exp( -evt.EleCand_eta[l1] ) + evt.EleCand_pt[l2]*exp( -evt.EleCand_eta[l2] ) ) / 13.e3;
+        pl1g.SetPtEtaPhiE(evt.GenEleCand_pt[0], evt.GenEleCand_eta[0], evt.GenEleCand_phi[0], evt.GenEleCand_e[0]);
+        pl2g.SetPtEtaPhiE(evt.GenEleCand_pt[1], evt.GenEleCand_eta[1], evt.GenEleCand_phi[1], evt.GenEleCand_e[1]);
+        pl1.SetPtEtaPhiE(evt.EleCand_pt[l1], evt.EleCand_eta[l1], evt.EleCand_phi[l1], evt.EleCand_e[l1]);
+        pl2.SetPtEtaPhiE(evt.EleCand_pt[l2], evt.EleCand_eta[l2], evt.EleCand_phi[l2], evt.EleCand_e[l2]);
+      }
+
       // We don't have working photons for now
 //      pg1.SetPtEtaPhiE(evt.GenPhotCand_pt[0], evt.GenPhotCand_eta[0], evt.GenPhotCand_phi[0], evt.GenPhotCand_e[0]);
 //      pg2.SetPtEtaPhiE(evt.GenPhotCand_pt[1], evt.GenPhotCand_eta[1], evt.GenPhotCand_phi[1], evt.GenPhotCand_e[1]);
@@ -135,46 +213,54 @@ void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/da
       pair_aco = 1.-fabs( evt.Pair_dphi[j] )/M_PI;
       mreco = 0.5*sqrt(pow(Wgg, 2) - sqrt(pow(Wmiss,2) - 4*pow(Chi10mass, 2)) + sqrt(pow(Wlep, 2) - 4*pow(mumass, 2)));
       double mreco2 = 2 * mreco;
-      double eta1 = evt.MuonCand_eta[l1];
-      double eta2 = evt.MuonCand_eta[l2];
+
       double ptMiss = sqrt(p_miss.Px()*p_miss.Px() + p_miss.Py()*p_miss.Py()); // Missing transfers momentum
-      double ptTot = sqrt(p1.Px()*p1.Px() + p1.Py()*p1.Py()) + sqrt(p2.Px()*p2.Px() + p2.Px()*p2.Px()); // Total Pt, calculated from diffracted protons 
+      double ptTot = sqrt(p1.Px()*p1.Px() + p1.Py()*p1.Py()) + sqrt(p2.Px()*p2.Px() + p2.Px()*p2.Px()); // Total Pt, calculated from diffracted protons
+      double pair_eta_diff = fabs(evt.MuonCand_eta[l1] - evt.MuonCand_eta[l2]);
+      double eta1 = pl1.Eta();
+      double eta2 = pl2.Eta();
+      double pt1 = pl1.Pt();
+      double pt2 = pl2.Pt();
+      double deltaR = sqrt(pow(pl2.Eta() - pl1.Eta(), 2) + pow(pl2.Phi() - pl1.Phi(), 2));
+      double Et = (pl1+pl2).Et();
 
-      
-      double deltaR = sqrt(pow(evt.MuonCand_eta[l2] - evt.MuonCand_eta[l1], 2) + pow(evt.MuonCand_phi[l2] - evt.MuonCand_phi[l1], 2));
- 
 
-      tree2->Branch("Wgg", &Wgg);
-      tree2->Branch("Wmiss", &Wmiss);
-      tree2->Branch("Emiss", &Emiss);
-      tree2->Branch("Wlep", &Wlep);
-      tree2->Branch("Wgenlep", &Wgenlep);
-      tree2->Branch("mreco", &mreco);
-      tree2->Branch("mreco2", &mreco2);
-      tree2->Branch("pair_mass", &pair_mass);
-      tree2->Branch("extratracks", &extratracks);
-      tree2->Branch("pair_dphi", &pair_dphi);
-      tree2->Branch("kvc_z", &kvc_z);
-      tree2->Branch("slep_dphi", &evt.GenSLRPair_dphi);
-      tree2->Branch("pho_dphi", &pho_dphi);
-      tree2->Branch("slep_aco", &slep_aco);
-      tree2->Branch("pair_aco", &pair_aco);
-      tree2->Branch("pho_aco", &pho_aco);
-      tree2->Branch("closest_extra", &closest_extra);
-      tree2->Branch("closest_hp_extra", &closest_hp_extra);
-      tree2->Branch("pair_eta_diff", &pair_eta_diff);
-      tree2->Branch("eta1", &eta1);
-      tree2->Branch("eta2", &eta2);
-      tree2->Branch("deltaR", &deltaR);
-      tree2->Branch("ptMiss", &ptMiss);
-      tree2->Branch("ptTot", &ptTot);
+      store_var("Wgg", Wgg);
+      store_var("Wmiss", Wmiss);
+      store_var("Emiss", Emiss);
+      store_var("Wlep", Wlep);
+      store_var("Wgenlep", Wgenlep);
+      store_var("mreco", mreco);
+      store_var("mreco2", mreco2);
+      store_var("pair_mass", pair_mass);
+      store_var("extratracks", extratracks);
+      store_var("pair_dphi", pair_dphi);
+      store_var("kvc_z", kvc_z);
+      store_var("slep_dphi", evt.GenSLRPair_dphi);
+      store_var("pho_dphi", pho_dphi);
+      store_var("slep_aco", slep_aco);
+      store_var("pair_aco", pair_aco);
+      store_var("pho_aco", pho_aco);
+      store_var("closest_extra", closest_extra);
+      store_var("closest_hp_extra", closest_hp_extra);
+      store_var("pair_eta_diff", pair_eta_diff);
+      store_var("eta1", eta1);
+      store_var("eta2", eta2);
+      store_var("pt1", pt1);
+      store_var("pt2", pt2);
+      store_var("deltaR", deltaR);
+      store_var("ptMiss", ptMiss);
+      store_var("ptTot", ptTot);
+      store_var("Et", Et);
+      store_var("xip", xip);
+      store_var("xim", xim);
+      n_rows++;
 //      h_pair_mass.Fill( evt.Pair_mass[j] );
 //      h_extratracks.Fill( evt.Pair_extratracks0p5mm[j] );
 //      h_pair_dphi.Fill( evt.Pair_dphi[j] );
 //      h_kvc_z.Fill( evt.KalmanVertexCand_z[j] );
 
-      tree2->Fill();
-      newtree1->Fill();
+//      newtree1->Fill();
 
       //cout << evt.Pair_extratracks2mm[j] << endl;
 
@@ -199,11 +285,35 @@ void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/da
 //  h2.Draw("ap");
 //  c.Print("missgg.pdf");
 
-
-  file2.cd();
-  newtree1->Write();
-  tree2->Write();
   file.Close();
+  TFile file2(filename2, "recreate");
+  auto tree2 = new TTree("computed", "Computed quantities from the ROOT analysis");
+
+  for(map<string,int>::iterator it = var_map.begin(); it != var_map.end(); ++it) {
+    keypairs.push_back(*it);
+  }
+  std::sort(keypairs.begin(), keypairs.end(), [](auto &left, auto &right) {
+      return left.second < right.second;
+  });
+  vector<double> reg(n_vars);
+  for(int j = 0; j < n_vars; j++) {
+    keys.push_back(strdup(keypairs[j].first.c_str()));
+    tree2->Branch(keys[j], &reg[j]);
+  }
+
+  write_csv(csv_filename);
+
+  start_time();
+  for(int i = 0; i < n_rows; i++) {
+    for(int j = 0; j < n_vars; j++) {
+      reg[j] = var_v[i][j];
+    }
+    tree2->Fill();
+  }
+  end_time();
+
+//  newtree1->Write();
+  tree2->Write();
   file2.Close();
 
   // Friend tree

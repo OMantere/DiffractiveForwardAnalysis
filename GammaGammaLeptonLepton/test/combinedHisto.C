@@ -20,65 +20,67 @@ std::string line;
 int Colorlist[] = {600, 632, 416, 880, 432, 860, 900};
 
 
-
 // Function for loading the filelist
-vector<string> fileloader(string fnam="fileList.txt"){
+vector <string> fileloader(string fnam = "fileList.txt") {
 
-    
+
     std::string line;
-    vector<string> filelist;
-    while(getline(infile, line)){
-        if(line[0]!='#'){
-
-           filelist.push_back(line);
+    vector <vector<string>> filelist;
+    while (getline(infile, line)) {
+        if (line[0] == '#') continue;
+        if (line[0] == '-') {
+            filelist.back().push_back(veline);
+        } else {
+            vector <string> v = {veline};
+            filelist.push_back(v);
         }
     }
     return filelist;
 
 }
 
-char *str2char (string str){ //Helper function for turning strings into char *:s
-    char * out = new char[str.size() + 1];
-    std::copy(str.begin(),str.end(),out);
+char *str2char(string str) { //Helper function for turning strings into char *:s
+    char *out = new char[str.size() + 1];
+    std::copy(str.begin(), str.end(), out);
     out[str.size()] = '\0';
 
     return out;
 }
 
-void rescaleY(TH1D *h, double scale){
-    if(h->GetMaximum()<scale){
-        h->SetMaximum(scale*1.1);
+void rescaleY(TH1D *h, double scale) {
+    if (h->GetMaximum() < scale) {
+        h->SetMaximum(scale * 1.1);
     }
     return;
 }
+
 // Function for drawing the histograms on each iteration
 TCanvas *draw_histos(TCanvas *c,
-        TH1D *hmasses[], TH1D *hMEs[],
-        TH1D *hptMisses[], TH1D *hptTots[], 
-        TH1D *hWgg[], string foldstr,
-        string data_name, int id, double xsec)
-{
-    
+                     TH1D *hmasses[], TH1D *hMEs[],
+                     TH1D *hptMisses[], TH1D *hptTots[],
+                     TH1D *hWgg[], string foldstr,
+                     string data_name, int id, double xsec) {
+
     Double_t Wgg, pair_mass, Emiss, ptMiss, ptTot;
-    
-    char * name = str2char(data_name);
-    char * fold = str2char(foldstr);
+
+    char *name = str2char(data_name);
+    char *fold = str2char(foldstr);
     cout << name << endl;
     TFile File(fold);
     TTree *tree = (TTree *) File.Get("computed");
- 
+
     //Set the desired parameters here
 
-    tree->SetBranchAddress("pair_mass",&pair_mass);
+    tree->SetBranchAddress("pair_mass", &pair_mass);
     tree->SetBranchAddress("Emiss", &Emiss);
-    tree->SetBranchAddress("ptMiss",&ptMiss);
-    tree->SetBranchAddress("ptTot",&ptTot);
-    tree->SetBranchAddress("Wgg",&Wgg);
+    tree->SetBranchAddress("ptMiss", &ptMiss);
+    tree->SetBranchAddress("ptTot", &ptTot);
+    tree->SetBranchAddress("Wgg", &Wgg);
 
     int N = tree->GetEntriesFast();
 
 
-    for(int j=0;j<N;j++){
+    for (int j = 0; j < N; j++) {
         // Fill the historgams
         tree->GetEntry(j);
         hmasses[id]->Fill(pair_mass);
@@ -89,12 +91,12 @@ TCanvas *draw_histos(TCanvas *c,
     }
     // Select the color for current iteration
     int color = Colorlist[id];
-    
+
     //Plot the values
 //hmasses[id]->Sumw2();    
 
-    double norm = xsec/N;
-    cout<<norm<<endl;
+    double norm = xsec / N;
+    cout << norm << endl;
     hmasses[id]->Scale(norm);
     hMEs[id]->Scale(norm);
     hptMisses[id]->Scale(norm);
@@ -106,7 +108,7 @@ TCanvas *draw_histos(TCanvas *c,
     rescaleY(hMEs[0], hMEs[id]->GetMaximum());
     rescaleY(hptMisses[0], hptMisses[id]->GetMaximum());
     rescaleY(hptTots[0], hptTots[id]->GetMaximum());
-    rescaleY(hWgg[0],hWgg[id]->GetMaximum());
+    rescaleY(hWgg[0], hWgg[id]->GetMaximum());
 
     //gStyle->SetErrorY(0.0001);
     c->cd(1);
@@ -115,12 +117,12 @@ TCanvas *draw_histos(TCanvas *c,
     hmasses[id]->SetLineColor(color);
     hmasses[id]->SetXTitle("[GeV]");
     c->cd(2);
-    
+
     hMEs[id]->SetName(name);
     hMEs[id]->SetLineColor(color);
     hMEs[id]->Draw("HIST SAME");
     hMEs[id]->SetXTitle("[GeV]");
-  //  hMEs[id]->SetFillColor(color);
+    //  hMEs[id]->SetFillColor(color);
     c->cd(3);
 
     hptMisses[id]->SetName(name);
@@ -132,7 +134,7 @@ TCanvas *draw_histos(TCanvas *c,
 
     hptTots[id]->SetName(name);
     hptTots[id]->SetLineColor(color);
- //   hptTots[id]->SetFillColor(color);
+    //   hptTots[id]->SetFillColor(color);
     hptTots[id]->Draw("HIST SAME");
     hptTots[id]->SetXTitle("[GeV]");
 
@@ -145,20 +147,20 @@ TCanvas *draw_histos(TCanvas *c,
 
     delete[] name;
     delete[] fold;
-    
+
     c->Update();
-    
+
     return c;
 }
 
-void combinedHisto(){
+void combinedHisto() {
 
-    vector<string> flist = fileloader();
- 
+    vector <string> flist = fileloader();
+
     // Create the canvas and initialize a bunch of stuff
-    
+
     TCanvas *c = new TCanvas("Testi");
-    c->Divide(3,2);
+    c->Divide(3, 2);
 
 
     int N = flist.size();
@@ -168,47 +170,46 @@ void combinedHisto(){
     TH1D *hptTots[N];
     TH1D *hWgg[N];
 
-    vector<string> names;
+    vector <string> names;
     vector<double> xsecs;
-    vector<string> outputs;
-    auto* legend = new TLegend(0.2,0.2,0.8,0.8);
+    vector <string> outputs;
+    auto *legend = new TLegend(0.2, 0.2, 0.8, 0.8);
     // The iteration loop
     // 1. Obtain the parameters from the filelist
     // 2. Initialize the histograms
     // 3. Run the plotting function
 
-    for(int i = 0; i < N; i++){
-       vector<string> words;
-        
-       istringstream iss(flist[i]);
-       copy(istream_iterator<string>(iss),
-               istream_iterator<string>(),
-               back_inserter(words));
-       string name = words[0];
-       names.push_back(name);
+    for (int i = 0; i < N; i++) {
+        vector <string> words;
 
-       double xsec;
-       std::string::size_type sz;
-       xsec = std::stof(words[1], &sz);
-       xsecs.push_back(xsec);
+        istringstream iss(flist[i]);
+        copy(istream_iterator<string>(iss),
+             istream_iterator<string>(),
+             back_inserter(words));
+        string name = words[0];
+        names.push_back(name);
 
-       string output = words[2];
-       outputs.push_back(output);
+        double xsec;
+        std::string::size_type sz;
+        xsec = std::stof(words[1], &sz);
+        xsecs.push_back(xsec);
 
-       hmasses[i] = new TH1D("Pair mass","Pair mass",40,0,1000);       
-       hMEs[i] = new TH1D("Missing Energy","Missing Energy",10, 0, 1000);
-       hptMisses[i] = new TH1D("Missing PT","Missing PT",10,0,400);
-       hptTots[i] = new TH1D("PT protons","PT of protons",10,0,10);
-       hWgg[i] = new TH1D("Wgg", "Wgg",30,0,1500);
-       c = draw_histos(c,hmasses,hMEs,hptMisses,hptTots,hWgg, output, name, i, xsec);
-        
-       char *name_ =str2char(name);
-       legend->AddEntry(hmasses[i],name_);
+        string output = words[2];
+        outputs.push_back(output);
 
-       
+        hmasses[i] = new TH1D("Pair mass", "Pair mass", 40, 0, 1000);
+        hMEs[i] = new TH1D("Missing Energy", "Missing Energy", 10, 0, 1000);
+        hptMisses[i] = new TH1D("Missing PT", "Missing PT", 10, 0, 400);
+        hptTots[i] = new TH1D("PT protons", "PT of protons", 10, 0, 10);
+        hWgg[i] = new TH1D("Wgg", "Wgg", 30, 0, 1500);
+        c = draw_histos(c, hmasses, hMEs, hptMisses, hptTots, hWgg, output, name, i, xsec);
+
+        char *name_ = str2char(name);
+        legend->AddEntry(hmasses[i], name_);
+
 
     }
-    c->cd(6); 
+    c->cd(6);
     legend->Draw();
     c->Print("c.pdf");
     //c->BuildLegend();

@@ -13,7 +13,7 @@
 //
 // Original Author:  Laurent Forthomme,40 4-B20,+41227671567,
 //         Created:  Thu Sep 13 15:17:14 CET 2012
-// $Id: GammaGammaLL.cc,v 1.3 2013/04/28 08:40:45 lforthom Exp $
+
 //
 //
 
@@ -472,7 +472,7 @@ GammaGammaLL::fetchElectrons( const edm::Event& iEvent )
   for ( unsigned int i = 0; i < eleColl->size(); ++i ) {
     const edm::Ptr<pat::Electron> electron = eleColl->ptrAt( i );
 
-    evt_.EleCand_et[evt_.nEleCand] = electron->et();
+    evt_.EleCand_pt[evt_.nEleCand] = electron->pt();
     evt_.EleCand_eta[evt_.nEleCand] = electron->eta();
     evt_.EleCand_phi[evt_.nEleCand] = electron->phi();
     evt_.EleCand_e[evt_.nEleCand] = electron->energy();
@@ -829,11 +829,11 @@ GammaGammaLL::newTracksInfoRetrieval( int l1id, int l2id )
   switch (leptonsType_ ) {
     case ggll::ElectronMuon: {
       l1.SetPtEtaPhiE( evt_.MuonCand_pt[l1id], evt_.MuonCand_eta[l1id], evt_.MuonCand_phi[l1id], evt_.MuonCand_e[l1id] );
-      l2.SetPtEtaPhiE( evt_.EleCand_et[l2id], evt_.EleCand_eta[l2id], evt_.EleCand_phi[l2id], evt_.EleCand_e[l2id] );
+      l2.SetPtEtaPhiE( evt_.EleCand_pt[l2id], evt_.EleCand_eta[l2id], evt_.EleCand_phi[l2id], evt_.EleCand_e[l2id] );
     } break;
     case ggll::DiElectron: {
-      l1.SetPtEtaPhiE( evt_.EleCand_et[l1id], evt_.EleCand_eta[l1id], evt_.EleCand_phi[l1id], evt_.EleCand_e[l1id] );
-      l2.SetPtEtaPhiE( evt_.EleCand_et[l2id], evt_.EleCand_eta[l2id], evt_.EleCand_phi[l2id], evt_.EleCand_e[l2id] );
+      l1.SetPtEtaPhiE( evt_.EleCand_pt[l1id], evt_.EleCand_eta[l1id], evt_.EleCand_phi[l1id], evt_.EleCand_e[l1id] );
+      l2.SetPtEtaPhiE( evt_.EleCand_pt[l2id], evt_.EleCand_eta[l2id], evt_.EleCand_phi[l2id], evt_.EleCand_e[l2id] );
     } break;
     case ggll::DiMuon: {
       l1.SetPtEtaPhiE( evt_.MuonCand_pt[l1id], evt_.MuonCand_eta[l1id], evt_.MuonCand_phi[l1id], evt_.MuonCand_e[l1id] );
