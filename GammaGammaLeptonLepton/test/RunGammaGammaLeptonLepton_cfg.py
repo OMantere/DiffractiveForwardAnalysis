@@ -22,7 +22,7 @@ process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
 #'/store/data/Run2016G/DoubleEG/AOD/23Sep2016-v1/100000/0042DBD3-BA8E-E611-919E-002481ACDAA8.root',
 #'file:/afs/cern.ch/user/j/jmantere/private/cms/CMSSW_9_2_3/src/ww_1k.root',
-'file:/afs/cern.ch/user/k/karjas/private/CMSSW/dataFold/Events/wwllbg.root'
+FILEIN
     ),
     #firstEvent = cms.untracked.uint32(0)
 )
@@ -131,7 +131,7 @@ process.ggll_aod.phoIdLabels = cms.PSet(
 
 # prepare the output file
 process.TFileService = cms.Service('TFileService',
-    fileName = cms.string('/afs/cern.ch/user/k/karjas/private/CMSSW/dataFold/GammaGammaOutput/wwllbgKristianoutput.root'),
+    fileName = cms.string(FILEOUT),
     closeFileFast = cms.untracked.bool(True)
 )
 

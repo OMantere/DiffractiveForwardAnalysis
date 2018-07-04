@@ -56,10 +56,10 @@ void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/da
   double* WmissA = new double[N];
   double* WggA = new double[N];
 
-//  TTree *tree = new TTree("analysis", "The analysis tree");
-//  tree->Branch("xip", &xip);
-//  tree->Branch("xim",&xim);
-//  tree->Branch("neutralino_mass",&neutralino_mass);
+  TTree *tree = new TTree("analysis", "The analysis tree");
+  tree->Branch("xip", &xip);
+  tree->Branch("xim",&xim);
+  tree->Branch("neutralino_mass",&neutralino_mass);
 
   cout << "Entries: " << N << endl;
   for ( unsigned long long i = 0; i < tree->GetEntriesFast(); ++i ) {
@@ -150,31 +150,43 @@ void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/da
       double deltaR = sqrt(pow(evt.MuonCand_eta[l2] - evt.MuonCand_eta[l1], 2) + pow(evt.MuonCand_phi[l2] - evt.MuonCand_phi[l1], 2));
  
 
-      tree2->Branch("Wgg", &Wgg);
-      tree2->Branch("Wmiss", &Wmiss);
-      tree2->Branch("Emiss", &Emiss);
-      tree2->Branch("Wlep", &Wlep);
-      tree2->Branch("Wgenlep", &Wgenlep);
-      tree2->Branch("mreco", &mreco);
-      tree2->Branch("mreco2", &mreco2);
-      tree2->Branch("pair_mass", &pair_mass);
-      tree2->Branch("extratracks", &extratracks);
-      tree2->Branch("pair_dphi", &pair_dphi);
-      tree2->Branch("kvc_z", &kvc_z);
-      tree2->Branch("slep_dphi", &evt.GenSLRPair_dphi);
-      tree2->Branch("pho_dphi", &pho_dphi);
-      tree2->Branch("slep_aco", &slep_aco);
-      tree2->Branch("pair_aco", &pair_aco);
-      tree2->Branch("pho_aco", &pho_aco);
-      tree2->Branch("closest_extra", &closest_extra);
-      tree2->Branch("closest_hp_extra", &closest_hp_extra);
-      tree2->Branch("pair_eta_diff", &pair_eta_diff);
-      tree2->Branch("eta1", &eta1);
-      tree2->Branch("eta2", &eta2);
-      tree2->Branch("deltaR", &deltaR);
-      tree2->Branch("ptMiss", &ptMiss);
-      tree2->Branch("ptTot", &ptTot);
-//      h_pair_mass.Fill( evt.Pair_mass[j] );
+      double MET_noProt = sqrt(lep_pair.Px()*lep_pair.Px() + lep_pair.Py()*lep_pair.Py());
+      
+      double ptl1 = sqrt(pl1.Px()*pl1.Px()+pl1.Py()*pl1.Py());
+      double ptl2 = sqrt(pl2.Px()*pl2.Px()+pl2.Py()*pl2.Py());
+      double cosPhi = 1 - MET_noProt*MET_noProt/(2*ptl1*ptl1);
+
+      tree2->SetBranchAddress("Wgg", &Wgg);
+      tree2->SetBranchAddress("Wmiss", &Wmiss);
+      tree2->SetBranchAddress("Emiss", &Emiss);
+      tree2->SetBranchAddress("Wlep", &Wlep);
+      tree2->SetBranchAddress("Wgenlep", &Wgenlep);
+      tree2->SetBranchAddress("mreco", &mreco); // Reconstructed mass
+      tree2->SetBranchAddress("mreco2", &mreco2); // Reconstructed mass of the pair
+      tree2->SetBranchAddress("pair_mass", &pair_mass); // Mass of the pair
+      tree2->SetBranchAddress("extratracks", &extratracks); // Number of tracks within 5mm of the main jet
+      tree2->SetBranchAddress("pair_dphi", &pair_dphi); // Delta phi of the 
+      tree2->SetBranchAddress("kvc_z", &kvc_z);
+      tree2->SetBranchAddress("slep_dphi", &evt.GenSLRPair_dphi);
+      tree2->SetBranchAddress("pho_dphi", &pho_dphi);
+      tree2->SetBranchAddress("slep_aco", &slep_aco);
+      tree2->SetBranchAddress("pair_aco", &pair_aco);
+      tree2->SetBranchAddress("pho_aco", &pho_aco);
+      tree2->SetBranchAddress("closest_extra", &closest_extra);
+      tree2->SetBranchAddress("closest_hp_extra", &closest_hp_extra);
+      tree2->SetBranchAddress("pair_eta_diff", &pair_eta_diff);
+      tree2->SetBranchAddress("eta1", &eta1);
+      tree2->SetBranchAddress("eta2", &eta2);
+      tree2->SetBranchAddress("deltaR", &deltaR);
+      tree2->SetBranchAddress("ptMiss", &ptMiss);
+      tree2->SetBranchAddress("ptTot", &ptTot);
+      tree2->SetBranchAddress("MET_noProt", &MET_noProt);
+      tree2->SetBranchAddress("ptl1", &ptl1);
+      tree2->SetBranchAddress("ptl2", &ptl2);
+      tree2->SetBranchAddress("xip", &xip);
+      tree2->SetBranchAddress("xim", &xim);
+      tree2->SetBranchAddress("cosPhi", &cosPhi); 
+      //      h_pair_mass.Fill( evt.Pair_mass[j] );
 //      h_extratracks.Fill( evt.Pair_extratracks0p5mm[j] );
 //      h_pair_dphi.Fill( evt.Pair_dphi[j] );
 //      h_kvc_z.Fill( evt.KalmanVertexCand_z[j] );

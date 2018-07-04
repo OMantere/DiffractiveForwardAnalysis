@@ -9,7 +9,7 @@
 #include <fstream>
 #include <iterator>
 #include <vector>
-
+#include <algorithm>
 
 using namespace std;
 
@@ -18,16 +18,51 @@ std::ifstream infile("fileList.txt");
 std::string line;
 
 int Colorlist[] = {600, 632, 416, 880, 432, 860, 900};
+std::string datafold = "/afs/cern.ch/user/k/karjas/private/CMSSW/dataFold/";
+
+double d1,d2,d3,d4,d5;
+
+// SELECT PARAMETERS HERE!
+
+// Currently supported options
+// Wgg: Invariant mass of the photons
+// mass: Invariant mass of the lepton pair
+// ptTot: Sum of the transverse momenta of the protons
+// ptMiss: pt of neutralinos (pt_photons - pt_leptons)
+// ptl1: pt of lepton 1
+// ptl2: pt of lepton 2
+// MET_noProt: pt of leptons
+vector<std::string> paramList = {"ptl1","ptl2","Wgg", "Emiss","MET_noProt"};
+TTree *tree;
+
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// !!!!!!!!!!!CUTS!!!!!!!!!!!!!!!!!!!!!!!!
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// 0 corresponds to 1st parameter in paramlist etc
+bool cuts(double *vals[]){
+//cout << *vals[4] <<endl;
+//    return true;
+
+        return *vals[0] < 60
+        && *vals[1] < 60
+        && *vals[2] > -1 
+        && *vals[3] > 210
+
+        && *vals[4] < 70;
 
 
+};
 
+// Currently supports only 5 histograms 
 // Function for loading the filelist
-vector<string> fileloader(string fnam="fileList.txt"){
-
+vector<string> fileloader(){
+    std::string infile = datafold+"filelist.txt";
     
+    std::ifstream input(infile, std::ios::binary | ios::in);
+
     std::string line;
     vector<string> filelist;
-    while(getline(infile, line)){
+    while(std::getline(input, line)){
         if(line[0]!='#'){
 
            filelist.push_back(line);
@@ -51,103 +86,78 @@ void rescaleY(TH1D *h, double scale){
     }
     return;
 }
+
+void updateHisto(TH1D **h,int id, char *name,double norm){
+    int color = Colorlist[id];
+
+    h[id]->Scale(norm);
+    
+    rescaleY(h[0], h[id]->GetMaximum()); 
+    h[id]->SetName(name);
+    h[id]->Draw("HIST SAME");
+    h[id]->SetLineColor(color);
+    h[id]->SetXTitle("[GeV]");
+    h[id]->Rebin(); 
+    return; 
+} 
+
+
+
+
 // Function for drawing the histograms on each iteration
 TCanvas *draw_histos(TCanvas *c,
-        TH1D *hmasses[], TH1D *hMEs[],
-        TH1D *hptMisses[], TH1D *hptTots[], 
-        TH1D *hWgg[], string foldstr,
+        TH1D *h1[], TH1D *h2[],
+        TH1D *h3[], TH1D *h4[], 
+        TH1D *h5[], string foldstr,
         string data_name, int id, double xsec)
 {
     
-    Double_t Wgg, pair_mass, Emiss, ptMiss, ptTot;
-    
+    int NParam = paramList.size();
     char * name = str2char(data_name);
     char * fold = str2char(foldstr);
     cout << name << endl;
     TFile File(fold);
     TTree *tree = (TTree *) File.Get("computed");
- 
-    //Set the desired parameters here
 
-    tree->SetBranchAddress("pair_mass",&pair_mass);
-    tree->SetBranchAddress("Emiss", &Emiss);
-    tree->SetBranchAddress("ptMiss",&ptMiss);
-    tree->SetBranchAddress("ptTot",&ptTot);
-    tree->SetBranchAddress("Wgg",&Wgg);
+    double *p[5]={&d1,&d2,&d3,&d4,&d5}; // Pointer array
 
+    TH1D **histolist[5]={h1,h2,h3,h4,h5}; // Histogram array
+    
+    for(int hID=0; hID<5; hID++){
+        char *param = str2char(paramList[hID]);
+        if(std::find(paramList.begin(), paramList.end(), param) != paramList.end()){
+            cout << param << " found!" << endl;
+            tree->SetBranchAddress(param, p[hID]);
+        }
+    }
+   
     int N = tree->GetEntriesFast();
 
+
+    int pass = 0;
 
     for(int j=0;j<N;j++){
         // Fill the historgams
         tree->GetEntry(j);
-        hmasses[id]->Fill(pair_mass);
-        hMEs[id]->Fill(Emiss);
-        hptMisses[id]->Fill(ptMiss);
-        hptTots[id]->Fill(ptTot);
-        hWgg[id]->Fill(Wgg);
+        if(cuts(p)){
+            pass += 1;
+            for(int k = 0; k < 5; k++){
+                histolist[k][id]->Fill(*p[k]);
+            
+            }
+        }
     }
     // Select the color for current iteration
     int color = Colorlist[id];
-    
-    //Plot the values
-//hmasses[id]->Sumw2();    
+ 
+    cout << "In " << data_name << " " << N - pass<<" out of " << N  << " (" << (N*1.-pass*1.)/N*100. << "%) events were cut" << endl;
 
     double norm = xsec/N;
-    cout<<norm<<endl;
-    hmasses[id]->Scale(norm);
-    hMEs[id]->Scale(norm);
-    hptMisses[id]->Scale(norm);
-    hptTots[id]->Scale(norm);
-    hWgg[id]->Scale(norm);
-    //hmasses[id]->SetMaximum(1);
-
-    rescaleY(hmasses[0], hmasses[id]->GetMaximum());
-    rescaleY(hMEs[0], hMEs[id]->GetMaximum());
-    rescaleY(hptMisses[0], hptMisses[id]->GetMaximum());
-    rescaleY(hptTots[0], hptTots[id]->GetMaximum());
-    rescaleY(hWgg[0],hWgg[id]->GetMaximum());
-
-    //gStyle->SetErrorY(0.0001);
-    c->cd(1);
-
-    hmasses[id]->Draw("HIST SAME");
-    hmasses[id]->SetLineColor(color);
-    hmasses[id]->SetXTitle("[GeV]");
-    c->cd(2);
-    
-    hMEs[id]->SetName(name);
-    hMEs[id]->SetLineColor(color);
-    hMEs[id]->Draw("HIST C SAME");
-    hMEs[id]->SetXTitle("[GeV]");
-  //  hMEs[id]->SetFillColor(color);
-    c->cd(3);
-
-    hptMisses[id]->SetName(name);
-    hptMisses[id]->SetLineColor(color);
-    hptMisses[id]->Draw("HIST C SAME");
-    hptMisses[id]->SetXTitle("[GeV]");
-//    hptMisses[id]->SetFillColor(color);
-    c->cd(4);
-
-    hptTots[id]->SetName(name);
-    hptTots[id]->SetLineColor(color);
- //   hptTots[id]->SetFillColor(color);
-    hptTots[id]->Draw("HIST C SAME");
-    hptTots[id]->SetXTitle("[GeV]");
-
-    c->cd(5);
-
-    hWgg[id]->SetName(name);
-    hWgg[id]->SetLineColor(color);
-    hWgg[id]->Draw("HIST C SAME");
-    hWgg[id]->SetXTitle("[GeV]");
-
-    delete[] name;
-    delete[] fold;
-    
+    for(int j=0;j<5;j++){
+        c->cd(j+1);
+        updateHisto(histolist[j],id,name,norm);
+    }
     c->Update();
-    
     return c;
 }
 
@@ -160,28 +170,33 @@ void combinedHisto(){
     TCanvas *c = new TCanvas("Testi");
     c->Divide(3,2);
 
-
     int N = flist.size();
-    TH1D *hmasses[N];
-    TH1D *hMEs[N];
-    TH1D *hptMisses[N];
-    TH1D *hptTots[N];
-    TH1D *hWgg[N];
+    int NParam = paramList.size(); 
+
+    TH1D *h1[N];
+    TH1D *h2[N];
+    TH1D *h3[N];
+    TH1D *h4[N];
+    TH1D *h5[N];
 
     vector<string> names;
     vector<double> xsecs;
+    vector<double> errors;
     vector<string> outputs;
+
     auto* legend = new TLegend(0.2,0.2,0.8,0.8);
     // The iteration loop
     // 1. Obtain the parameters from the filelist
     // 2. Initialize the histograms
     // 3. Run the plotting function
-
+    cout<<N<<endl;
     for(int i = 0; i < N; i++){
-       vector<string> words;
+       
+       vector<string> words; // Iterator for the line
         
        istringstream iss(flist[i]);
-       copy(istream_iterator<string>(iss),
+
+       copy(istream_iterator<string>(iss), // Loads the data from the line to an vector
                istream_iterator<string>(),
                back_inserter(words));
        string name = words[0];
@@ -192,18 +207,31 @@ void combinedHisto(){
        xsec = std::stof(words[1], &sz);
        xsecs.push_back(xsec);
 
-       string output = words[2];
-       outputs.push_back(output);
+       double error;
+       error = std::stof(words[2], &sz);
+       errors.push_back(error);
 
-       hmasses[i] = new TH1D("Pair mass","Pair mass",40,0,1000);       
-       hMEs[i] = new TH1D("Missing Energy","Missing Energy",10, 0, 1000);
-       hptMisses[i] = new TH1D("Missing PT","Missing PT",10,0,400);
-       hptTots[i] = new TH1D("PT protons","PT of protons",10,0,10);
-       hWgg[i] = new TH1D("Wgg", "Wgg",30,0,1500);
-       c = draw_histos(c,hmasses,hMEs,hptMisses,hptTots,hWgg,  output, name, i, xsec);
-        
-       char *name_ =str2char(name);
-       legend->AddEntry(hmasses[i],name_);
+       string output = words[3]; 
+
+       std::string out = datafold+"Computed/" + output;
+       outputs.push_back(out);
+
+       cout << out << endl; 
+       
+       char* name_ = str2char(name);
+       h1[i] = new TH1D(paramList[0].c_str(),paramList[0].c_str(),40,0,0);
+       h2[i] = new TH1D(paramList[1].c_str(),paramList[1].c_str(),40,0,0);
+       h3[i] = new TH1D(paramList[2].c_str(),paramList[2].c_str(),40,0,0);
+       h4[i] = new TH1D(paramList[3].c_str(),paramList[3].c_str(),40,0,0);
+       h5[i] = new TH1D(paramList[4].c_str(),paramList[4].c_str(),40,0,0);
+
+       cout<<"Check"<<endl;
+       c = draw_histos(c,h1,h2,h3,h4,h5,  out, name, i, xsec);
+     
+       
+       cout<<name_<<endl;
+
+       legend->AddEntry(h1[i],name_);
 
        
 
@@ -215,4 +243,5 @@ void combinedHisto(){
     return;
 
 }
+
 
