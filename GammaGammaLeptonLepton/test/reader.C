@@ -158,6 +158,7 @@ void reader(const char* c_name = "elastic")
       //if ( 1.-fabs( evt.Pair_dphi[j] )/M_PI > 0.009 ) continue;
       //if ( evt.Pair_mass[j] < 110. ) continue;
 
+      set<string> bgs = {"ww", "elastic", "dy"};
 
       const unsigned int l1 = evt.Pair_lepton1[j], l2 = evt.Pair_lepton2[j];
       double El1, El2;
@@ -165,8 +166,13 @@ void reader(const char* c_name = "elastic")
       if(type == "Muon") {
         El1 = evt.MuonCand_e[l1];
         El2 = evt.MuonCand_e[l2];
-        xip = ( evt.MuonCand_pt[l1]*exp( +evt.MuonCand_eta[l1] ) + evt.MuonCand_pt[l2]*exp( +evt.MuonCand_eta[l2] ) ) / 13.e3;
-        xim = ( evt.MuonCand_pt[l1]*exp( -evt.MuonCand_eta[l1] ) + evt.MuonCand_pt[l2]*exp( -evt.MuonCand_eta[l2] ) ) / 13.e3;
+        if(bgs.find(name) == bgs.end()) {
+          xip = ( evt.GenRMuonCand_pt[l1]*exp( +evt.GenRMuonCand_eta[l1] ) + evt.GenRMuonCand_pt[l2]*exp( +evt.GenRMuonCand_eta[l2] ) ) / 13.e3;
+          xim = ( evt.GenRMuonCand_pt[l1]*exp( -evt.GenRMuonCand_eta[l1] ) + evt.GenRMuonCand_pt[l2]*exp( -evt.GenRMuonCand_eta[l2] ) ) / 13.e3;  
+        } else {
+          xip = ( evt.MuonCand_pt[l1]*exp( +evt.MuonCand_eta[l1] ) + evt.MuonCand_pt[l2]*exp( +evt.MuonCand_eta[l2] ) ) / 13.e3;
+          xim = ( evt.MuonCand_pt[l1]*exp( -evt.MuonCand_eta[l1] ) + evt.MuonCand_pt[l2]*exp( -evt.MuonCand_eta[l2] ) ) / 13.e3; 
+        }
         pl1g.SetPtEtaPhiE(evt.GenMuonCand_pt[0], evt.GenMuonCand_eta[0], evt.GenMuonCand_phi[0], evt.GenMuonCand_e[0]);
         pl2g.SetPtEtaPhiE(evt.GenMuonCand_pt[1], evt.GenMuonCand_eta[1], evt.GenMuonCand_phi[1], evt.GenMuonCand_e[1]);
         pl1.SetPtEtaPhiE(evt.MuonCand_pt[l1], evt.MuonCand_eta[l1], evt.MuonCand_phi[l1], evt.MuonCand_e[l1]);
@@ -174,8 +180,13 @@ void reader(const char* c_name = "elastic")
       } else {
         El1 = evt.EleCand_e[l1];
         El2 = evt.EleCand_e[l2];
-        xip = ( evt.EleCand_pt[l1]*exp( +evt.EleCand_eta[l1] ) + evt.EleCand_pt[l2]*exp( +evt.EleCand_eta[l2] ) ) / 13.e3;
-        xim = ( evt.EleCand_pt[l1]*exp( -evt.EleCand_eta[l1] ) + evt.EleCand_pt[l2]*exp( -evt.EleCand_eta[l2] ) ) / 13.e3;
+        if(bgs.find(name) == bgs.end()) {
+          xip = ( evt.GenREleCand_pt[l1]*exp( +evt.GenREleCand_eta[l1] ) + evt.GenREleCand_pt[l2]*exp( +evt.GenREleCand_eta[l2] ) ) / 13.e3;
+          xim = ( evt.GenREleCand_pt[l1]*exp( -evt.GenREleCand_eta[l1] ) + evt.GenREleCand_pt[l2]*exp( -evt.GenREleCand_eta[l2] ) ) / 13.e3;
+        } else {
+          xip = ( evt.EleCand_pt[l1]*exp( +evt.EleCand_eta[l1] ) + evt.EleCand_pt[l2]*exp( +evt.EleCand_eta[l2] ) ) / 13.e3;
+          xim = ( evt.EleCand_pt[l1]*exp( -evt.EleCand_eta[l1] ) + evt.EleCand_pt[l2]*exp( -evt.EleCand_eta[l2] ) ) / 13.e3; 
+        }
         pl1g.SetPtEtaPhiE(evt.GenEleCand_pt[0], evt.GenEleCand_eta[0], evt.GenEleCand_phi[0], evt.GenEleCand_e[0]);
         pl2g.SetPtEtaPhiE(evt.GenEleCand_pt[1], evt.GenEleCand_eta[1], evt.GenEleCand_phi[1], evt.GenEleCand_e[1]);
         pl1.SetPtEtaPhiE(evt.EleCand_pt[l1], evt.EleCand_eta[l1], evt.EleCand_phi[l1], evt.EleCand_e[l1]);
@@ -222,7 +233,7 @@ void reader(const char* c_name = "elastic")
       double pt1 = pl1.Pt();
       double pt2 = pl2.Pt();
       double deltaR = sqrt(pow(pl2.Eta() - pl1.Eta(), 2) + pow(pl2.Phi() - pl1.Phi(), 2));
-      double Et = (pl1+pl2).Et();
+      double Et = lep_pair.Et();
 
 
       store_var("Wgg", Wgg);
@@ -254,6 +265,8 @@ void reader(const char* c_name = "elastic")
       store_var("Et", Et);
       store_var("xip", xip);
       store_var("xim", xim);
+      store_var("Pt", lep_pair.Pt());
+      store_var("Mt", sqrt(lep_pair.E()*lep_pair.E()-lep_pair.Pz()*lep_pair.Pz()));
       n_rows++;
 //      h_pair_mass.Fill( evt.Pair_mass[j] );
 //      h_extratracks.Fill( evt.Pair_extratracks0p5mm[j] );
