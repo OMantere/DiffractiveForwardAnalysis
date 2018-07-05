@@ -1,5 +1,11 @@
 import FWCore.ParameterSet.Config as cms
 
+import os
+in_file = 'slr2_x10_80_2k'
+out_file = 'ggll_slr2_x10_80'
+if os.getenv('GGLL_FILES'):
+    in_file, out_file = os.getenv("GGLL_FILES").split()
+
 process = cms.Process("ggll")
 
 runOnMC = True
@@ -21,7 +27,7 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000) )
 process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
 #'/store/data/Run2016G/DoubleEG/AOD/23Sep2016-v1/100000/0042DBD3-BA8E-E611-919E-002481ACDAA8.root',
-'file:/afs/cern.ch/user/j/jmantere/private/cms/CMSSW_9_2_3/src/slr2_x10_80_2k.root',
+'file:/afs/cern.ch/user/j/jmantere/private/cms/CMSSW_9_2_3/src/%s.root' % in_file,
 # 'file:/afs/cern.ch/user/k/karjas/private/CMSSW/dataFold/Events/wwllbg.root'
     ),
     #firstEvent = cms.untracked.uint32(0)
@@ -131,7 +137,7 @@ process.ggll_aod.phoIdLabels = cms.PSet(
 
 # prepare the output file
 process.TFileService = cms.Service('TFileService',
-    fileName = cms.string('ggll_slr2_x10_80.root'),
+    fileName = cms.string('%s.root' % out_file),
     closeFileFast = cms.untracked.bool(True)
 )
 

@@ -162,7 +162,7 @@ void reader(const char* c_name = "elastic")
 
       const unsigned int l1 = evt.Pair_lepton1[j], l2 = evt.Pair_lepton2[j];
       double El1, El2;
-      TLorentzVector pl1, pl2, pg1, pg2, pl1g, pl2g;
+      TLorentzVector pl1, pl2, pg1, pg2, pl1g, pl2g, psl1, psl2;
       if(type == "Muon") {
         El1 = evt.MuonCand_e[l1];
         El2 = evt.MuonCand_e[l2];
@@ -177,6 +177,8 @@ void reader(const char* c_name = "elastic")
         pl2g.SetPtEtaPhiE(evt.GenMuonCand_pt[1], evt.GenMuonCand_eta[1], evt.GenMuonCand_phi[1], evt.GenMuonCand_e[1]);
         pl1.SetPtEtaPhiE(evt.MuonCand_pt[l1], evt.MuonCand_eta[l1], evt.MuonCand_phi[l1], evt.MuonCand_e[l1]);
         pl2.SetPtEtaPhiE(evt.MuonCand_pt[l2], evt.MuonCand_eta[l2], evt.MuonCand_phi[l2], evt.MuonCand_e[l2]);
+        psl1.SetPtEtaPhiE(evt.GenRMuonCand_pt[l1], evt.GenRMuonCand_eta[l1], evt.GenRMuonCand_phi[l1], evt.GenRMuonCand_e[l1]);
+        psl2.SetPtEtaPhiE(evt.GenRMuonCand_pt[l2], evt.GenRMuonCand_eta[l2], evt.GenRMuonCand_phi[l2], evt.GenRMuonCand_e[l2]);
       } else {
         El1 = evt.EleCand_e[l1];
         El2 = evt.EleCand_e[l2];
@@ -189,8 +191,8 @@ void reader(const char* c_name = "elastic")
         }
         pl1g.SetPtEtaPhiE(evt.GenEleCand_pt[0], evt.GenEleCand_eta[0], evt.GenEleCand_phi[0], evt.GenEleCand_e[0]);
         pl2g.SetPtEtaPhiE(evt.GenEleCand_pt[1], evt.GenEleCand_eta[1], evt.GenEleCand_phi[1], evt.GenEleCand_e[1]);
-        pl1.SetPtEtaPhiE(evt.EleCand_pt[l1], evt.EleCand_eta[l1], evt.EleCand_phi[l1], evt.EleCand_e[l1]);
-        pl2.SetPtEtaPhiE(evt.EleCand_pt[l2], evt.EleCand_eta[l2], evt.EleCand_phi[l2], evt.EleCand_e[l2]);
+        psl1.SetPtEtaPhiE(evt.GenREleCand_pt[l1], evt.GenREleCand_eta[l1], evt.GenREleCand_phi[l1], evt.GenREleCand_e[l1]);
+        psl2.SetPtEtaPhiE(evt.GenREleCand_pt[l2], evt.GenREleCand_eta[l2], evt.GenREleCand_phi[l2], evt.GenREleCand_e[l2]);
       }
 
       // We don't have working photons for now
@@ -200,6 +202,7 @@ void reader(const char* c_name = "elastic")
       pg2 = P2 - p2;
       Wgg = 2 * sqrt(pg1.E()*pg2.E());
       const TLorentzVector lep_pair = pl1 + pl2;
+      const TLorentzVector slep_pair = psl1 + psl2;
       const TLorentzVector gen_lep_pair = pl1g + pl2g;
       Wlep = lep_pair.M();
       double Wgenlep = gen_lep_pair.M();
@@ -267,6 +270,10 @@ void reader(const char* c_name = "elastic")
       store_var("xim", xim);
       store_var("Pt", lep_pair.Pt());
       store_var("Mt", sqrt(lep_pair.E()*lep_pair.E()-lep_pair.Pz()*lep_pair.Pz()));
+      if(bgs.find(name) == bgs.end())
+        store_var("pair_y", slep_pair.Rapidity());
+      else
+        store_var("pair_y", lep_pair.Rapidity());
       n_rows++;
 //      h_pair_mass.Fill( evt.Pair_mass[j] );
 //      h_extratracks.Fill( evt.Pair_extratracks0p5mm[j] );
