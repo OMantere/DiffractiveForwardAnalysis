@@ -123,7 +123,7 @@ namespace ggll
 
       // Electron quantities
       unsigned int nEleCand;
-      double EleCand_et[MAX_LL], EleCand_eta[MAX_LL], EleCand_phi[MAX_LL], EleCand_e[MAX_LL];
+      double EleCand_pt[MAX_LL], EleCand_eta[MAX_LL], EleCand_phi[MAX_LL], EleCand_e[MAX_LL];
       double EleCand_vtxx[MAX_LL], EleCand_vtxy[MAX_LL], EleCand_vtxz[MAX_LL];
       double EleCand_innerTrackPt[MAX_LL], EleCand_innerTrackEta[MAX_LL], EleCand_innerTrackPhi[MAX_LL];
       double EleCand_innerTrackVtxz[MAX_LL];
@@ -254,7 +254,7 @@ namespace ggll
           MuonCandTrack_chisq[i] = -999.;
           MuonCand_isglobal[i] = MuonCand_istracker[i] = MuonCand_isstandalone[i] = MuonCand_ispfmuon[i] = -999;
           MuonCand_istight[i] = -999;
-          EleCand_et[i] = EleCand_eta[i] = EleCand_phi[i] = EleCand_e[i] = -999.;
+          EleCand_pt[i] = EleCand_eta[i] = EleCand_phi[i] = EleCand_e[i] = -999.;
           EleCand_vtxx[i] = EleCand_vtxy[i] = EleCand_vtxz[i] = -999.;
           EleCand_innerTrackPt[i] = EleCand_innerTrackEta[i] = EleCand_innerTrackPhi[i] = -999.;
           EleCand_innerTrackVtxz[i] = -999.;
@@ -413,7 +413,7 @@ namespace ggll
 
         if ( tt == ElectronMuon || tt == DiElectron ) {
           tree->Branch( "nEleCand", &nEleCand, "nEleCand/i" );
-          tree->Branch( "EleCand_et", EleCand_et, "EleCand_et[nEleCand]/D" );
+          tree->Branch( "EleCand_pt", EleCand_pt, "EleCand_pt[nEleCand]/D" );
           tree->Branch( "EleCand_eta", EleCand_eta, "EleCand_eta[nEleCand]/D" );
           tree->Branch( "EleCand_phi", EleCand_phi, "EleCand_phi[nEleCand]/D" );
           tree->Branch( "EleCand_e", EleCand_e, "EleCand_e[nEleCand]/D" );
@@ -657,7 +657,7 @@ namespace ggll
 
         if ( tt == ElectronMuon || tt == DiElectron ) {
           tree->SetBranchAddress( "nEleCand", &nEleCand );
-          tree->SetBranchAddress( "EleCand_et", EleCand_et );
+          tree->SetBranchAddress( "EleCand_pt", EleCand_pt );
           tree->SetBranchAddress( "EleCand_eta", EleCand_eta );
           tree->SetBranchAddress( "EleCand_phi", EleCand_phi );
           tree->SetBranchAddress( "EleCand_e", EleCand_e );

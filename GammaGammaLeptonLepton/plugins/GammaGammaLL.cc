@@ -472,7 +472,7 @@ GammaGammaLL::fetchElectrons( const edm::Event& iEvent )
   for ( unsigned int i = 0; i < eleColl->size(); ++i ) {
     const edm::Ptr<pat::Electron> electron = eleColl->ptrAt( i );
 
-    evt_.EleCand_et[evt_.nEleCand] = electron->et();
+    evt_.EleCand_pt[evt_.nEleCand] = electron->pt();
     evt_.EleCand_eta[evt_.nEleCand] = electron->eta();
     evt_.EleCand_phi[evt_.nEleCand] = electron->phi();
     evt_.EleCand_e[evt_.nEleCand] = electron->energy();
@@ -483,7 +483,7 @@ GammaGammaLL::fetchElectrons( const edm::Event& iEvent )
     evt_.EleCand_vtxz[evt_.nEleCand] = electron->vertex().z();
 
     TLorentzVector leptonptmp;
-    leptonptmp.SetPtEtaPhiM( electron->et(), electron->eta(), electron->phi(), electron->mass() );
+    leptonptmp.SetPtEtaPhiM( electron->pt(), electron->eta(), electron->phi(), electron->mass() );
 
     if ( electron->closestCtfTrackRef().isNonnull() ) { // Only for pat::Electron
       evt_.EleCand_innerTrackPt[evt_.nEleCand] = electron->closestCtfTrackRef()->pt();
@@ -500,7 +500,7 @@ GammaGammaLL::fetchElectrons( const edm::Event& iEvent )
     evt_.EleCand_deltaPhi[evt_.nEleCand] = electron->deltaPhiSuperClusterTrackAtVtx();
     evt_.EleCand_deltaEta[evt_.nEleCand] = electron->deltaEtaSuperClusterTrackAtVtx();
     evt_.EleCand_HoverE[evt_.nEleCand] = electron->hcalOverEcal();
-    evt_.EleCand_trackiso[evt_.nEleCand] = electron->dr03TkSumPt() / electron->et();
+    evt_.EleCand_trackiso[evt_.nEleCand] = electron->dr03TkSumPt() / electron->pt();
     evt_.EleCand_ecaliso[evt_.nEleCand] = electron->dr03EcalRecHitSumEt() / electron->et();
     evt_.EleCand_hcaliso[evt_.nEleCand] = electron->dr03HcalTowerSumEt() / electron->et();
     evt_.EleCand_sigmaIetaIeta[evt_.nEleCand] = electron->sigmaIetaIeta();
@@ -829,11 +829,11 @@ GammaGammaLL::newTracksInfoRetrieval( int l1id, int l2id )
   switch (leptonsType_ ) {
     case ggll::ElectronMuon: {
       l1.SetPtEtaPhiE( evt_.MuonCand_pt[l1id], evt_.MuonCand_eta[l1id], evt_.MuonCand_phi[l1id], evt_.MuonCand_e[l1id] );
-      l2.SetPtEtaPhiE( evt_.EleCand_et[l2id], evt_.EleCand_eta[l2id], evt_.EleCand_phi[l2id], evt_.EleCand_e[l2id] );
+      l2.SetPtEtaPhiE( evt_.EleCand_pt[l2id], evt_.EleCand_eta[l2id], evt_.EleCand_phi[l2id], evt_.EleCand_e[l2id] );
     } break;
     case ggll::DiElectron: {
-      l1.SetPtEtaPhiE( evt_.EleCand_et[l1id], evt_.EleCand_eta[l1id], evt_.EleCand_phi[l1id], evt_.EleCand_e[l1id] );
-      l2.SetPtEtaPhiE( evt_.EleCand_et[l2id], evt_.EleCand_eta[l2id], evt_.EleCand_phi[l2id], evt_.EleCand_e[l2id] );
+      l1.SetPtEtaPhiE( evt_.EleCand_pt[l1id], evt_.EleCand_eta[l1id], evt_.EleCand_phi[l1id], evt_.EleCand_e[l1id] );
+      l2.SetPtEtaPhiE( evt_.EleCand_pt[l2id], evt_.EleCand_eta[l2id], evt_.EleCand_phi[l2id], evt_.EleCand_e[l2id] );
     } break;
     case ggll::DiMuon: {
       l1.SetPtEtaPhiE( evt_.MuonCand_pt[l1id], evt_.MuonCand_eta[l1id], evt_.MuonCand_phi[l1id], evt_.MuonCand_e[l1id] );
