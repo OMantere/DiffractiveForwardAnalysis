@@ -24,6 +24,11 @@ double smeared(double q) {
   return q + smear(e2);
 }
 
+double rapidity(const TLorentzVector v){
+    double rap = 1.0/2*log((v.E()+v.Pz())/(v.E()-v.Pz()));
+    return rap;
+}
+
 void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/dataFold/GammaGammaOutput/wwllbgKristianoutput.root", const char* filename2 = "computedwwllbgKristian.root")
 {
   TFile file( filename);
@@ -45,6 +50,8 @@ void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/da
 
   double xim;
   double xip;
+
+
   double neutralino_mass;
   double Wmiss;
   double Wgg;
@@ -56,11 +63,12 @@ void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/da
   double* WmissA = new double[N];
   double* WggA = new double[N];
 
-  TTree *tree = new TTree("analysis", "The analysis tree");
+ /* TTree *tree = new TTree("analysis", "The analysis tree");
   tree->Branch("xip", &xip);
   tree->Branch("xim",&xim);
   tree->Branch("neutralino_mass",&neutralino_mass);
 
+  */
   cout << "Entries: " << N << endl;
   for ( unsigned long long i = 0; i < tree->GetEntriesFast(); ++i ) {
     tree->GetEntry( i );
@@ -74,12 +82,12 @@ void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/da
     TLorentzVector P2(0, 0,-sqrt(pow(6500, 2) - pow(0.938, 2)), 6500);
     TLorentzVector p1, p2; // p1, p2: measured protons
     TLorentzVector com(0, 0, 0, 13.e3);
-    cout << "Proton count in this event: " << evt.nGenProtCand << endl;
+ //   cout << "Proton count in this event: " << evt.nGenProtCand << endl;
     p1.SetPtEtaPhiE(evt.GenProtCand_pt[0], evt.GenProtCand_eta[0], evt.GenProtCand_phi[0], evt.GenProtCand_e[0]);
     p2.SetPtEtaPhiE(evt.GenProtCand_pt[1], evt.GenProtCand_eta[1], evt.GenProtCand_phi[1], evt.GenProtCand_e[1]);
-    cout << "Proton 1 pz: " << p1.Z() << endl;
-    cout << "Proton 2 pz: " << p2.Z() << endl;
-    cout << "New proton pair mass: " << (p1+p2).M() << endl;
+ //   cout << "Proton 1 pz: " << p1.Z() << endl;
+ //   cout << "Proton 2 pz: " << p2.Z() << endl;
+ //   cout << "New proton pair mass: " << (p1+p2).M() << endl;
 
     //cout << "- dilepton pairs:" << endl;
     for ( unsigned int j = 0; j < evt.nPair; ++j ) {
@@ -95,9 +103,11 @@ void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/da
       const double El1 = evt.MuonCand_e[l1];
       const double El2 = evt.MuonCand_e[l2];
 
-      xip = ( evt.MuonCand_pt[l1]*exp( +evt.MuonCand_eta[l1] ) + evt.MuonCand_pt[l2]*exp( +evt.MuonCand_eta[l2] ) ) / 13.e3;
+      xip = (P1.Pz() - p1.Pz())/P1.Pz();
+
+      //xip = ( evt.MuonCand_pt[l1]*exp( +evt.MuonCand_eta[l1] ) + evt.MuonCand_pt[l2]*exp( +evt.MuonCand_eta[l2] ) ) / 13.e3;
       xim = ( evt.MuonCand_pt[l1]*exp( -evt.MuonCand_eta[l1] ) + evt.MuonCand_pt[l2]*exp( -evt.MuonCand_eta[l2] ) ) / 13.e3;
-      cout << "central system xip/xim = " << xip << " / " << xim << endl;
+  //    cout << "central system xip/xim = " << xip << " / " << xim << endl;
 
       TLorentzVector pl1, pl2, pg1, pg2, pl1g, pl2g;
       pl1g.SetPtEtaPhiE(evt.GenMuonCand_pt[0], evt.GenMuonCand_eta[0], evt.GenMuonCand_phi[0], evt.GenMuonCand_e[0]);
@@ -140,52 +150,70 @@ void reader( const char* filename = "/afs/cern.ch/user/k/karjas/private/CMSSW/da
       pair_aco = 1.-fabs( evt.Pair_dphi[j] )/M_PI;
       mreco = 0.5*sqrt(pow(Wgg, 2) - sqrt(pow(Wmiss,2) - 4*pow(Chi10mass, 2)) + sqrt(pow(Wlep, 2) - 4*pow(mumass, 2)));
       double mreco2 = 2 * mreco;
-      double eta1 = evt.MuonCand_eta[l1];
-      double eta2 = evt.MuonCand_eta[l2];
       double ptMiss = sqrt(p_miss.Px()*p_miss.Px() + p_miss.Py()*p_miss.Py()); // Missing transfers momentum
       double ptTot = sqrt(p1.Px()*p1.Px() + p1.Py()*p1.Py()) + sqrt(p2.Px()*p2.Px() + p2.Px()*p2.Px()); // Total Pt, calculated from diffracted protons 
       //cout << "ptMiss: " << ptMiss << endl;
       
-      
-      double deltaR = sqrt(pow(evt.MuonCand_eta[l2] - evt.MuonCand_eta[l1], 2) + pow(evt.MuonCand_phi[l2] - evt.MuonCand_phi[l1], 2));
- 
+      double deltaR = sqrt(pow(evt.MuonCand_eta[l2] - evt.MuonCand_eta[l1], 2) + pow(evt.MuonCand_phi[l2] - evt.MuonCand_phi[l1], 2)); 
 
-      double MET_noProt = sqrt(lep_pair.Px()*lep_pair.Px() + lep_pair.Py()*lep_pair.Py());
-      
+
+      double ptl1l2 = sqrt(lep_pair.Px()*lep_pair.Px() + lep_pair.Py()*lep_pair.Py());
+      double ptl1l2Check = lep_pair.Pt();
       double ptl1 = sqrt(pl1.Px()*pl1.Px()+pl1.Py()*pl1.Py());
       double ptl2 = sqrt(pl2.Px()*pl2.Px()+pl2.Py()*pl2.Py());
-      double cosPhi = 1 - MET_noProt*MET_noProt/(2*ptl1*ptl1);
+          
+      double etal1l2 = lep_pair.Eta();
+      double eta1 = evt.MuonCand_eta[l1];
+      double eta2 = evt.MuonCand_eta[l2];
 
-      tree2->SetBranchAddress("Wgg", &Wgg);
-      tree2->SetBranchAddress("Wmiss", &Wmiss);
-      tree2->SetBranchAddress("Emiss", &Emiss);
-      tree2->SetBranchAddress("Wlep", &Wlep);
-      tree2->SetBranchAddress("Wgenlep", &Wgenlep);
-      tree2->SetBranchAddress("mreco", &mreco); // Reconstructed mass
-      tree2->SetBranchAddress("mreco2", &mreco2); // Reconstructed mass of the pair
-      tree2->SetBranchAddress("pair_mass", &pair_mass); // Mass of the pair
-      tree2->SetBranchAddress("extratracks", &extratracks); // Number of tracks within 5mm of the main jet
-      tree2->SetBranchAddress("pair_dphi", &pair_dphi); // Delta phi of the 
-      tree2->SetBranchAddress("kvc_z", &kvc_z);
-      tree2->SetBranchAddress("slep_dphi", &evt.GenSLRPair_dphi);
-      tree2->SetBranchAddress("pho_dphi", &pho_dphi);
-      tree2->SetBranchAddress("slep_aco", &slep_aco);
-      tree2->SetBranchAddress("pair_aco", &pair_aco);
-      tree2->SetBranchAddress("pho_aco", &pho_aco);
-      tree2->SetBranchAddress("closest_extra", &closest_extra);
-      tree2->SetBranchAddress("closest_hp_extra", &closest_hp_extra);
-      tree2->SetBranchAddress("pair_eta_diff", &pair_eta_diff);
-      tree2->SetBranchAddress("eta1", &eta1);
-      tree2->SetBranchAddress("eta2", &eta2);
-      tree2->SetBranchAddress("deltaR", &deltaR);
-      tree2->SetBranchAddress("ptMiss", &ptMiss);
-      tree2->SetBranchAddress("ptTot", &ptTot);
-      tree2->SetBranchAddress("MET_noProt", &MET_noProt);
-      tree2->SetBranchAddress("ptl1", &ptl1);
-      tree2->SetBranchAddress("ptl2", &ptl2);
-      tree2->SetBranchAddress("xip", &xip);
-      tree2->SetBranchAddress("xim", &xim);
-      tree2->SetBranchAddress("cosPhi", &cosPhi); 
+
+      double rapidityl1l2 = rapidity(lep_pair);
+      double rapidityl1 = rapidity(pl1);
+      double rapidityl2 = rapidity(pl2);
+      double rapiditysl = rapidity(pg1+pg2);
+     
+      double a = 1 - pair_dphi/M_PI;
+
+      double slMass = (pg1 + pg2).M();
+
+      tree2->Branch("Wgg", &Wgg);
+      tree2->Branch("Wmiss", &Wmiss);
+      tree2->Branch("Emiss", &Emiss);
+      tree2->Branch("Wlep", &Wlep);
+      tree2->Branch("Wgenlep", &Wgenlep);
+      tree2->Branch("mreco", &mreco); // Reconstructed mass
+      tree2->Branch("mreco2", &mreco2); // Reconstructed mass of the pair
+      tree2->Branch("pair_mass", &pair_mass); // Mass of the pair
+      tree2->Branch("extratracks", &extratracks); // Number of tracks within 5mm of the main jet
+      tree2->Branch("pair_dphi", &pair_dphi); // Delta phi of the 
+      tree2->Branch("kvc_z", &kvc_z);
+      tree2->Branch("slep_dphi", &evt.GenSLRPair_dphi);
+      tree2->Branch("pho_dphi", &pho_dphi);
+      tree2->Branch("slep_aco", &slep_aco);
+      tree2->Branch("pair_aco", &pair_aco);
+      tree2->Branch("pho_aco", &pho_aco);
+      tree2->Branch("closest_extra", &closest_extra);
+      tree2->Branch("closest_hp_extra", &closest_hp_extra);
+      tree2->Branch("pair_eta_diff", &pair_eta_diff);
+      tree2->Branch("deltaR", &deltaR);
+      tree2->Branch("ptMiss", &ptMiss);
+      tree2->Branch("ptTot", &ptTot);
+      tree2->Branch("ptl1l2", &ptl1l2);
+      tree2->Branch("ptl1l2Check", &ptl1l2Check);
+      tree2->Branch("ptl1", &ptl1);
+      tree2->Branch("ptl2", &ptl2);
+      tree2->Branch("xip", &xip);
+      tree2->Branch("xim", &xim);
+    
+      tree2->Branch("etal1l2",&etal1l2);
+      tree2->Branch("eta1", &eta1);
+      tree2->Branch("eta2", &eta2);
+      tree2->Branch("rapidityl1l2",&rapidityl1l2);
+      tree2->Branch("rapidityl1",&rapidityl1);
+      tree2->Branch("rapidityl2",&rapidityl2);
+      tree2->Branch("rapiditysl",&rapiditysl);
+      tree2->Branch("a",&a);
+      tree2->Branch("slMass", &slMass);
       //      h_pair_mass.Fill( evt.Pair_mass[j] );
 //      h_extratracks.Fill( evt.Pair_extratracks0p5mm[j] );
 //      h_pair_dphi.Fill( evt.Pair_dphi[j] );
