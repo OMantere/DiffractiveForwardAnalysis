@@ -80,7 +80,7 @@ void reader(const char* c_name = "elastic")
   string name(c_name);
   string cfilename = "../ggll_"+name+".root";
   string cfilename2 = "computed_"+name+".root";
-  string ccsv_filename= name+".root";
+  string ccsv_filename= name+".csv";
   const char* filename = cfilename.c_str();
   const char* filename2 = cfilename2.c_str();
   const char* csv_filename=ccsv_filename.c_str();
@@ -270,10 +270,9 @@ void reader(const char* c_name = "elastic")
       store_var("xim", xim);
       store_var("Pt", lep_pair.Pt());
       store_var("Mt", sqrt(lep_pair.E()*lep_pair.E()-lep_pair.Pz()*lep_pair.Pz()));
-      if(bgs.find(name) == bgs.end())
-        store_var("pair_y", slep_pair.Rapidity());
-      else
-        store_var("pair_y", lep_pair.Rapidity());
+      if(bgs.find(name) == bgs.end()) {
+        store_var("slep_pair_y", slep_pair.Rapidity());
+      store_var("pair_y", lep_pair.Rapidity());
       n_rows++;
 //      h_pair_mass.Fill( evt.Pair_mass[j] );
 //      h_extratracks.Fill( evt.Pair_extratracks0p5mm[j] );

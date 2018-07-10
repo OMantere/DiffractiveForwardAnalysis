@@ -19,7 +19,7 @@ void end_time() {
 
 string to_str(double val, int n, bool scient = false) {
     stringstream stream;
-    if(scient)
+    if (scient)
         stream << scientific << setprecision(n) << val;
     else
         stream << setprecision(n) << val;
@@ -28,6 +28,15 @@ string to_str(double val, int n, bool scient = false) {
 
 class VariableCut {
 public:
+    VariableCut(string var, double low, double up, double plow, double pup, bool plt, bool inverted) : variable(var),
+                                                                                                       low_bound(low),
+                                                                                                       up_bound(up),
+                                                                                                       low_plot(plow),
+                                                                                                       up_plot(pup),
+                                                                                                       plot(plt),
+                                                                                                       inverted(
+                                                                                                               inverted) {};
+
     VariableCut(string var, double low, double up, double plow, double pup, bool plt) : variable(var), low_bound(low),
                                                                                         up_bound(up), low_plot(plow),
                                                                                         up_plot(pup), plot(plt) {};
@@ -36,11 +45,8 @@ public:
                                                                               up_bound(up), low_plot(plow),
                                                                               up_plot(pup), plot(true) {};
 
-    VariableCut(string var, double low, double up) : variable(var), low_bound(low), up_bound(up), low_plot(0),
-                                                     up_plot(1000), plot(true) {};
-
-    VariableCut(string var, double low) : variable(var), low_bound(low), up_bound(DBL_MAX), low_plot(0), up_plot(1000),
-                                          plot(true) {};
+    VariableCut(string var, double plow, double pup) : variable(var), low_plot(plow), up_plot(pup), low_bound(DBL_MIN),
+                                                       up_bound(DBL_MAX), plot(true) {};
 
     VariableCut(string var) : variable(var), low_bound(DBL_MIN), up_bound(DBL_MAX), low_plot(0), up_plot(1000),
                               plot(true) {};
@@ -50,9 +56,13 @@ public:
     double low_plot;
     double up_plot;
     bool plot;
+    bool inverted = false;
 
     bool pass(double val) {
-        return val < up_bound && val > low_bound;
+        if(inverted)
+            return val > up_bound || val < low_bound;
+        else
+            return val < up_bound && val > low_bound;
     }
 
     double plot_range() {
@@ -62,14 +72,26 @@ public:
 
 class Sample {
 public:
-    Sample(string file, string leg, string short_leg, double cx, int c, bool line = false) : filename(file), legend(leg), short_legend(short_leg), crossx(cx), color(c), line(line) {};
-    Sample(string file, string leg, double cx, int c, bool line = false) : filename(file), legend(leg), short_legend(leg), crossx(cx), color(c), line(line) {};
+    Sample(string file, string leg, string short_leg, double cx, int c, bool line = false) : filename(file),
+                                                                                             legend(leg),
+                                                                                             short_legend(short_leg),
+                                                                                             crossx(cx), color(c),
+                                                                                             line(line) {};
+
+    Sample(string file, string leg, double cx, int c, bool line = false) : filename(file), legend(leg),
+                                                                           short_legend(leg), crossx(cx), color(c),
+                                                                           line(line) {};
     string filename;
     string legend;
     string short_legend;
     double crossx;
     int color;
     bool line;
+    double factor = 1;
+
+    void scale(double fac) {
+        factor = fac;
+    }
 };
 
 void plot_text(string text) {
@@ -100,19 +122,22 @@ vector <string> files;
 vector<int> colors;
 vector<double> crossx;
 
-Sample elastic = Sample("computed_elastic.root", "Elastic #gamma#gamma -> #mu_{R}^{+}#mu_{R}^{-}", elastic_crossx,
-                        4);
-Sample slr2 = Sample("computed_slr2.root", "LM1 #mu_{R}", lm1mur_crossx, 12);
-Sample slr2_x10_80_old = Sample("computed_slr2_x10_80_old.root", "LM1 #mu_{R} with m(#chi_{1}^{0}) = 80 GeV)", "LM1 #mu_{R}",
-                                lm1mur_x10_80_crossx_old, 2);
-Sample slr2_x10_80 = Sample("computed_slr2_x10_80.root", "LM1 #mu_{R} with m(#chi_{1}^{0}) = 80 GeV)", "LM1 #mu_{R}",
-                            lm1mur_x10_80_crossx, 6);
-Sample slr2_lm6 = Sample("computed_slr2_lm6.root", "LM6 #mu_{R}", lm1mur_lm6_crossx, 7);
-Sample slr2_lm6_x10_130 = Sample("computed_slr2_lm6_x10_130.root", "LM6 #mu_{R} with m(#chi_{1}^{0}) = 130 GeV)", "LM6 #mu_{R}",
-                                 lm1mur_lm6_x10_130_crossx, 10);
-Sample sll3 = Sample("computed_sll3.root", "LM1 #mu_{L}", lm1mul_crossx, 11);
-Sample ww = Sample("computed_ww.root", "W^{+}W^{-} -> #mu^{+}#mu^{-}", ww_crossx, 9);
-Sample dy = Sample("computed_dy.root", "Drell-Yan -> #mu^{+}#mu^{-}", dy_crossx, 8);
+Sample *elastic = new Sample("computed_elastic.root", "Elastic #gamma#gamma -> #mu_{R}^{+}#mu_{R}^{-}", elastic_crossx,
+                             4);
+Sample *slr2 = new Sample("computed_slr2.root", "LM1 #mu_{R}", lm1mur_crossx, 12);
+Sample *slr2_x10_80_old = new Sample("computed_slr2_x10_80_old.root", "LM1 #mu_{R} with m(#chi_{1}^{0}) = 80 GeV)",
+                                     "LM1 #mu_{R}",
+                                     lm1mur_x10_80_crossx_old, 2);
+Sample *slr2_x10_80 = new Sample("computed_slr2_x10_80.root", "LM1 #mu_{R} with m(#chi_{1}^{0}) = 80 GeV)",
+                                 "LM1 #mu_{R}",
+                                 lm1mur_x10_80_crossx, 6);
+Sample *slr2_lm6 = new Sample("computed_slr2_lm6.root", "LM6 #mu_{R}", lm1mur_lm6_crossx, 7);
+Sample *slr2_lm6_x10_130 = new Sample("computed_slr2_lm6_x10_130.root", "LM6 #mu_{R} with m(#chi_{1}^{0}) = 130 GeV)",
+                                      "LM6 #mu_{R}",
+                                      lm1mur_lm6_x10_130_crossx, 10);
+Sample *sll3 = new Sample("computed_sll3.root", "LM1 #mu_{L}", lm1mul_crossx, 11);
+Sample *ww = new Sample("computed_ww.root", "W^{+}W^{-} -> #mu^{+}#mu^{-}", ww_crossx, 9);
+Sample *dy = new Sample("computed_dy.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY", dy_crossx, 8);
 
 vector <VariableCut> l1_cuts = {
         VariableCut("Pt", 2, 10000, 0, 50, false),
@@ -130,8 +155,8 @@ vector <VariableCut> l1_cuts = {
         VariableCut("Wlep", -1e9, 1e9, 0, 150, false),
 };
 
-vector<VariableCut> kristian_lm1_cuts = {
-        VariableCut("pair_eta_diff", -100, 3, 0, 5,false),
+vector <VariableCut> kristian_lm1_cuts = {
+        VariableCut("pair_eta_diff", -100, 3, 0, 5, false),
         VariableCut("Pt", -100, 50, 0, 150, false),
         VariableCut("pt1", -100, 50, 0, 150, false),
         VariableCut("pt2", -100, 40, 0, 150, false),
@@ -149,34 +174,37 @@ vector <VariableCut> xip_cuts = {
         VariableCut("xip", -1, 1, 0, 0.2)
 };
 
-vector <VariableCut> pt_test = {
-        VariableCut("Wlep", -100, 1000, 0, 150),
+vector <VariableCut> dy_test = {
+        VariableCut("xip", 0.03, 0.15, 0, 0.2),
+        VariableCut("Wlep", 80, 100, 50, 150, true, true),
+        VariableCut("pair_aco", 0.14, 2, 0, 1),
+        VariableCut("Wlep", -10, 2000, 0, 1,false)
 };
 
-vector <Sample> all_samples = {
+//vector <Sample> all_samples = {
+////        dy,
+////        ww,
+////        elastic,
+//        slr2,
+//        slr2_lm6,
+//        slr2_lm6_x10_130,
+//        slr2_x10_80,
+//        sll3
+//};
+//
+//vector <Sample> signal_samples = {
 //        dy,
 //        ww,
-//        elastic,
-        slr2,
-        slr2_lm6,
-        slr2_lm6_x10_130,
-        slr2_x10_80,
-        sll3
-};
-
-vector <Sample> signal_samples = {
-//        dy,
-        ww,
-//        elastic,
-        slr2,
-        slr2_lm6,
-        sll3
-};
+////        elastic,
+//        slr2,
+//        slr2_lm6,
+//        sll3
+//};
 
 // Change
-vector <VariableCut> use_cuts = kristian_lm1_cuts;
-const char *pdfname = "cut_show.pdf";
-vector <Sample> use_samples = signal_samples;
+vector <VariableCut> use_cuts = dy_test;
+const char *pdfname = "dy_reduction.pdf";
+vector<Sample *> use_samples = {dy, slr2, slr2_lm6};
 
 int max_events = 10000;
 int n_bins = 80;
@@ -235,15 +263,16 @@ vector <vector<TH1F *>> load_files(vector <string> files, vector <VariableCut> c
 }
 
 void plot_hist_legend(int j) {
-    if(j==n_vars - 1)
-        return;
     auto hist_legend = new TLegend(0.65, 0.5, 0.89, 0.87);
     hist_legend->SetHeader("After cut", "C");
     hist_legend->SetTextSize(0.07);
     hist_legend->SetBorderSize(0);
     for (int k = 0; k < n_files; k++) {
-        char *str = strdup((use_samples[k].short_legend + ": " + to_str(pass_frac[k][j+1] * 100, 3) + " %").c_str());
-        if (use_samples[k].line)
+        double pass_fraction = pass_frac[k][j + 1];
+        if (j == n_vars - 1)
+            pass_fraction = pass_frac[k][j];
+        char *str = strdup((use_samples[k]->short_legend + ": " + to_str(pass_fraction * 100, 3) + " %").c_str());
+        if (use_samples[k]->line)
             hist_legend->AddEntry(histos[k][0], str, "l");
         else
             hist_legend->AddEntry(histos[k][0], str, "f");
@@ -252,11 +281,17 @@ void plot_hist_legend(int j) {
 }
 
 void l1_analysis() {
-    for (Sample sample : use_samples) {
-        crossx.push_back(sample.crossx);
-        colors.push_back(sample.color);
-        files.push_back(sample.filename);
-        display_names.push_back(sample.legend);
+    // Scale samples
+    dy->scale(5 / 2.7e+06);
+    dy->line = true;
+    slr2->line = true;
+    slr2_lm6->line = true;
+
+    for (Sample *sample : use_samples) {
+        crossx.push_back(sample->crossx);
+        colors.push_back(sample->color);
+        files.push_back(sample->filename);
+        display_names.push_back(sample->legend);
     }
 
     start_time();
@@ -281,8 +316,8 @@ void l1_analysis() {
     for (int i = 0; i < n_files; i++) {
         pass_frac.push_back(vector<double>(0));
         for (int j = 0; j < n_vars; j++) {
-            histos[i][j]->Scale(lhc_lumi * crossx[i] / n_events[i]);
-            if (use_samples[i].line) {
+            histos[i][j]->Scale(lhc_lumi * crossx[i] / n_events[i] * use_samples[i]->factor);
+            if (use_samples[i]->line) {
                 histos[i][j]->SetLineColor(colors[i]);
                 histos[i][j]->SetLineWidth(3);
                 double this_h_max = histos[i][j]->GetMaximum();
@@ -295,11 +330,12 @@ void l1_analysis() {
                 sh[j]->Add(histos[i][j]);
                 h_max[j] += histos[i][j]->GetMaximum();
             }
-            pass_frac.back().push_back(((double)passed[i][j]/(double)n_events[i]));
+            pass_frac.back().push_back(((double) passed[i][j] / (double) n_events[i]));
         }
         cout << "Sample " + files[i] << " reduced by: " << to_string((1.0 - pass_frac[i][n_vars - 1]) * 100);
-        cout << " %, total expected events: " << to_str(lhc_lumi * pass_frac[i][n_vars - 1] * use_samples[i].crossx, 2) << endl;
-        if (use_samples[i].line)
+        cout << " %, total expected events: " << to_str(lhc_lumi * pass_frac[i][n_vars - 1] * use_samples[i]->crossx, 2)
+             << endl;
+        if (use_samples[i]->line)
             legend->AddEntry(histos[i][0], display_names[i].c_str(), "l");
         else
             legend->AddEntry(histos[i][0], display_names[i].c_str(), "f");
@@ -316,11 +352,22 @@ void l1_analysis() {
         if (!use_cuts[j].plot)
             continue;
         canvas->cd(i_plt + 2);
-        sh[j]->Draw("HIST");
-        for(int k = 0; k < n_files; k++)
-            if(use_samples[k].line)
+        int k = 0;
+        if (sh[j]->GetNhists() == 0) {
+            histos[0][j]->SetStats(0);
+            histos[0][j]->SetMaximum(h_max[j] + h_max[j] * 0.1);
+            histos[0][j]->SetTitle(use_cuts[j].variable.c_str());
+            histos[0][j]->Draw("HIST");
+            k = 1;
+        } else {
+            sh[j]->SetMaximum(h_max[j] + h_max[j] * 0.1);
+            sh[j]->Draw("HIST");
+        }
+        while (k < n_files) {
+            if (use_samples[k]->line)
                 histos[k][j]->Draw("HIST SAME");
-        sh[j]->SetMaximum(h_max[j] + h_max[j] * 0.1);
+            k++;
+        }
         gStyle->SetTitleFontSize(0.07);
         canvas->Update();
 //        plot_text("Events ")
@@ -335,8 +382,13 @@ void l1_analysis() {
         canvas->Update();
         char *x_axis = strdup((use_cuts[j].variable + " [GeV]").c_str());
         char *y_axis = strdup(("Events / " + to_str(use_cuts[j].plot_range() / n_bins, 1) + " GeV").c_str());
-        sh[j]->GetXaxis()->SetTitle(x_axis);
-        sh[j]->GetYaxis()->SetTitle(y_axis);
+        if (sh[j]->GetNhists() == 0) {
+            histos[0][j]->GetXaxis()->SetTitle(x_axis);
+            histos[0][j]->GetYaxis()->SetTitle(y_axis);
+        } else {
+            sh[j]->GetXaxis()->SetTitle(x_axis);
+            sh[j]->GetYaxis()->SetTitle(y_axis);
+        }
         canvas->Modified();
         i_plt++;
     }
