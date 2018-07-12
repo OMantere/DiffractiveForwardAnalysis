@@ -137,7 +137,7 @@ Sample *slr2_lm6_x10_130 = new Sample("computed_slr2_lm6_x10_130.root", "LM6 #mu
                                       lm1mur_lm6_x10_130_crossx, 10);
 Sample *sll3 = new Sample("computed_sll3.root", "LM1 #mu_{L}", lm1mul_crossx, 11);
 Sample *ww = new Sample("computed_ww.root", "W^{+}W^{-} -> #mu^{+}#mu^{-}", ww_crossx, 9);
-Sample *dy = new Sample("computed_dy.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY", dy_crossx, 8);
+Sample *dy = new Sample("computed_dy_10k.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY", dy_crossx, 8);
 
 vector <VariableCut> l1_cuts = {
         VariableCut("Pt", 2, 10000, 0, 50, false),
@@ -177,7 +177,7 @@ vector <VariableCut> xip_cuts = {
 vector <VariableCut> dy_test = {
         VariableCut("xip", 0.03, 0.15, 0, 0.2),
         VariableCut("Wlep", 80, 100, 50, 150, true, true),
-        VariableCut("pair_aco", 0.14, 2, 0, 1),
+        VariableCut("pair_aco", 0.10, 2, 0, 1),
         VariableCut("Wlep", -10, 2000, 0, 1,false)
 };
 
@@ -282,7 +282,7 @@ void plot_hist_legend(int j) {
 
 void l1_analysis() {
     // Scale samples
-    dy->scale(5 / 2.7e+06);
+//    dy->scale(5 / 2.7e+06);
     dy->line = true;
     slr2->line = true;
     slr2_lm6->line = true;
