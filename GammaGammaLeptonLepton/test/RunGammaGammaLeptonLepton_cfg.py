@@ -10,8 +10,8 @@ process = cms.Process('NoSplit')
 #########################
 
 
-#process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+# process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10000) )
 # process.MessageLogger.cerr.FwkReport.reportEvery = 1000
 
 #########################
@@ -22,7 +22,11 @@ process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
 #'/store/data/Run2016G/DoubleEG/AOD/23Sep2016-v1/100000/0042DBD3-BA8E-E611-919E-002481ACDAA8.root',
 # 'file:/afs/cern.ch/user/j/jmantere/private/cms/CMSSW_9_2_3/src/%s.root' % in_file,
-  '/store/mc/RunIIFall17DRPremix/ZToMuMu_NNPDF31_13TeV-powheg_M_50_120/AODSIM/PU2017_94X_mc2017_realistic_v11-v2/90000/FEAA6CA7-8645-E811-90BE-FA163EC11CAA.root',
+#   'file:/afs/cern.ch/user/j/jmantere/private/cms/CMSSW_9_4_0/src/final.root',
+#   '/ZToMuMu_NNPDF31_13TeV-powheg_M_50_120/RunIIFall17DRPremix-PU2017_94X_mc2017_realistic_v11-v2/AODSIM',
+  # '/ZToMuMu_NNPDF31_13TeV-powheg_M_120_200/RunIIFall17DRPremix-94X_mc2017_realistic_v10-v2/AODSIM',
+  # '/ZToMuMu_NNPDF31_13TeV-powheg_M_200_400/RunIIFall17DRPremix-94X_mc2017_realistic_v10-v1/AODSIM',
+#   '/store/mc/RunIIFall17DRPremix/ZToMuMu_NNPDF31_13TeV-powheg_M_50_120/AODSIM/PU2017_94X_mc2017_realistic_v11-v2/90000/FEAA6CA7-8645-E811-90BE-FA163EC11CAA.root',
 # 'file:/afs/cern.ch/user/k/karjas/private/CMSSW/dataFold/Events/wwllbg.root'
     ),
     #firstEvent = cms.untracked.uint32(0)
@@ -133,7 +137,7 @@ process.ggll_aod.phoIdLabels = cms.PSet(
 # prepare the output file
 process.TFileService = cms.Service('TFileService',
     # fileName = cms.string('%s.root' % out_file),
-    fileName = cms.string('ggll_dy_das.root'),
+    fileName = cms.string('ggll.root'),
     closeFileFast = cms.untracked.bool(True)
 )
 

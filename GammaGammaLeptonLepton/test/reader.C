@@ -75,9 +75,16 @@ void write_csv(const char *csv_filename) {
     ofs.close();
 }
 
-void reader(const char *c_name = "elastic") {
+void reader(const char *c_name = "elastic", const char* out_name = "") {
+    const bool full_path = true;
     string name(c_name);
-    string cfilename = "../ggll_" + name + ".root";
+    string cfilename;
+    if (full_path) {
+        name = string(out_name);
+        cfilename = c_name;
+    }
+    else
+        cfilename = "../ggll_" + name + ".root";
     string cfilename2 = "computed_" + name + ".root";
     string ccsv_filename = name + ".csv";
     const char *filename = cfilename.c_str();

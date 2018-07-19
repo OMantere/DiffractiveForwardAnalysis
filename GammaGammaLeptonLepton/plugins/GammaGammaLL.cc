@@ -352,6 +352,9 @@ GammaGammaLL::analyzeMCEventContent( const edm::Event& iEvent )
     foundGenCandPairInEvent = true;
   }
   if ( foundGenCandPairInEvent ) {
+    chi10_1.SetPtEtaPhiE( evt_.GenChi10Cand_pt[0], evt_.GenChi10Cand_eta[0], evt_.GenChi10Cand_phi[0], evt_.GenChi10Cand_e[0] );
+    chi10_2.SetPtEtaPhiE( evt_.GenChi10Cand_pt[1], evt_.GenChi10Cand_eta[1], evt_.GenChi10Cand_phi[1], evt_.GenChi10Cand_e[1] );
+    
     const TLorentzVector pair = l1+l2;
     const TLorentzVector slr_pair = slr1+slr2;
     const TLorentzVector chi10_pair = chi10_1+chi10_2;
