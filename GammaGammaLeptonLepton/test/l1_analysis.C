@@ -109,6 +109,9 @@ double lhc_lumi = 50;
 double elastic_crossx = 20.0781 * 1000;
 double ww_crossx = 0.7583;
 double dy_crossx = 1141 * 1000;
+double cms_dy_crossx1 = 1975 * 1000;
+double cms_dy_crossx2 = 19.32 * 1000;
+double cms_dy_crossx3 = 2.731 * 1000;
 double lm1mul_crossx = 0.055;
 double lm1mur_crossx = 0.263;
 double lm1mur_x10_80_crossx_old = 1.7297;
@@ -137,7 +140,10 @@ Sample *slr2_lm6_x10_130 = new Sample("computed_slr2_lm6_x10_130.root", "LM6 #mu
                                       lm1mur_lm6_x10_130_crossx, 10);
 Sample *sll3 = new Sample("computed_sll3.root", "LM1 #mu_{L}", lm1mul_crossx, 11);
 Sample *ww = new Sample("computed_ww.root", "W^{+}W^{-} -> #mu^{+}#mu^{-}", ww_crossx, 9);
-Sample *dy = new Sample("computed_dy_10k.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY", dy_crossx, 8);
+//Sample *dy = new Sample("computed_dy_10k.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY", dy_crossx, 8);
+Sample *dy = new Sample("computed_dy_1M.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY", cms_dy_crossx1, 8);
+//Sample *dy2 = new Sample("computed_dy2_1M.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY", cms_dy_crossx2, 8);
+//Sample *dy3 = new Sample("computed_dy3_1M.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY", cms_dy_crossx3, 8);
 
 vector <VariableCut> l1_cuts = {
         VariableCut("Pt", 2, 10000, 0, 50, false),
@@ -208,10 +214,10 @@ vector<Sample *> use_samples = {dy, slr2, slr2_lm6};
 
 int max_events = 10000;
 int n_bins = 80;
-vector<int> n_events;
+vector<long int> n_events;
 int n_vars;
 int n_files;
-vector <vector<int>> passed;
+vector <vector<long int>> passed;
 map<string, double> val_map;
 vector <vector<double>> pass_frac;
 vector <vector<TH1F *>> histos;
@@ -231,7 +237,7 @@ vector <vector<TH1F *>> load_files(vector <string> files, vector <VariableCut> c
     }
     for (int i = 0; i < n_files; i++) {
         vector < TH1F * > histo_v;
-        vector<int> pass_v;
+        vector<long int> pass_v;
         for (int j = 0; j < n_vars; j++) {
             char *histo_name = strdup((cuts[j].variable + "_" + files[i]).c_str());
             TH1F *histo = new TH1F(histo_name, histo_name, n_bins, cuts[j].low_plot, cuts[j].up_plot);
@@ -247,7 +253,7 @@ vector <vector<TH1F *>> load_files(vector <string> files, vector <VariableCut> c
         for (int k = 0; k < n_vars; k++) {
             t->SetBranchAddress(c_names[k], &val_map.find(cuts[k].variable)->second);
         }
-        int N = t->GetEntriesFast();
+        long int N = t->GetEntriesFast();
         n_events.push_back(N);
         for (int j = 0; j < N; j++) {
             t->GetEntry(j);
@@ -282,7 +288,7 @@ void plot_hist_legend(int j) {
 
 void l1_analysis() {
     // Scale samples
-//    dy->scale(5 / 2.7e+06);
+    dy->scale(5 / 2.7e+06);
     dy->line = true;
     slr2->line = true;
     slr2_lm6->line = true;

@@ -45,7 +45,7 @@ double smeared(double q) {
 }
 
 char delimiter = ',';
-int max_events = 10000;
+int max_events = 1000000;
 int max_vars = 50;
 int n_vars = 0;
 int n_rows = 0;
@@ -65,12 +65,14 @@ void store_var(string name, double val) {
 void write_csv(const char *csv_filename) {
     ofstream ofs(csv_filename, ofstream::out);
     for (int j = 0; j < n_vars; j++) {
-        ofs << keys[j] << delimiter << "\n";
+        ofs << keys[j] << delimiter;
     }
+    ofs << "\n";
     for (int i = 0; i < n_rows; i++) {
         for (int j = 0; j < n_vars; j++) {
-            ofs << var_v[i][j] << delimiter << "\n";
+            ofs << var_v[i][j] << delimiter;
         }
+        ofs << "\n";
     }
     ofs.close();
 }
@@ -135,6 +137,7 @@ void reader(const char *c_name = "elastic", const char* out_name = "") {
 //  tree->Branch("neutralino_mass",&neutralino_mass);
 
     cout << "Entries: " << N << endl;
+    start_time();
     for (unsigned long long i = 0; i < tree->GetEntriesFast(); ++i) {
         tree->GetEntry(i);
         //cout << ">>> event " << i << endl;
@@ -347,7 +350,6 @@ void reader(const char *c_name = "elastic", const char* out_name = "") {
 
     write_csv(csv_filename);
 
-    start_time();
     for (int i = 0; i < n_rows; i++) {
         for (int j = 0; j < n_vars; j++) {
             reg[j] = var_v[i][j];
