@@ -64,15 +64,15 @@ void store_var(string name, double val) {
 
 void write_csv(const char *csv_filename) {
     ofstream ofs(csv_filename, ofstream::out);
-    for (int j = 0; j < n_vars; j++) {
+    for (int j = 0; j < n_vars - 1; j++) {
         ofs << keys[j] << delimiter;
     }
-    ofs << "\n";
+    ofs << keys[n_vars - 1] << "\n";
     for (int i = 0; i < n_rows; i++) {
-        for (int j = 0; j < n_vars; j++) {
+        for (int j = 0; j < n_vars - 1; j++) {
             ofs << var_v[i][j] << delimiter;
         }
-        ofs << "\n";
+        ofs << var_v[i][n_vars - 1] << "\n";
     }
     ofs.close();
 }
@@ -167,7 +167,7 @@ void reader(const char *c_name = "elastic", const char* out_name = "") {
             //if ( 1.-fabs( evt.Pair_dphi[j] )/M_PI > 0.009 ) continue;
             //if ( evt.Pair_mass[j] < 110. ) continue;
 
-            set <string> bgs = {"ww", "elastic", "dy", "dy_10k"};
+            set <string> bgs = {"ww", "elastic", "dy", "dy_10k", "dy_1M", "dy2", "dy3", "ttbar", "ppww", "ppwz", "ppzz"};
 
             const unsigned int l1 = evt.Pair_lepton1[j], l2 = evt.Pair_lepton2[j];
             double El1, El2;
