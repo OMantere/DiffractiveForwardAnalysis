@@ -13,6 +13,7 @@
 #include <string>
 
 #include <time.h>
+#include "mt2.h"
 
 clock_t start = clock(), diff;
 
@@ -44,15 +45,35 @@ double smeared(double q) {
     return q + smear(e2);
 }
 
+string type = "Muon";
 char delimiter = ',';
 int max_events = 1000000;
 int max_vars = 50;
 int n_vars = 0;
 int n_rows = 0;
+const double mu_mass = 105.6583745 / 1000;
+const double e_mass = 0.5109989461 / 1000;
+double chi10_mass = 100;
 vector <vector<double>> var_v(max_events, vector<double>(max_vars));
 std::map<string, int> var_map;
 vector <std::pair<string, int>> keypairs;
 vector<char *> keys;
+
+
+double MT2(TLorentzVector l1, TLorentzVector l2) {
+    double visible_mass;
+    if(type == "Muon")
+        visible_mass = mu_mass;
+    else
+        visible_mass = e_mass;
+    TLorentzVector pair = l1+l2;
+    asymm_mt2_lester_bisect::disableCopyrightMessage();
+    return asymm_mt2_lester_bisect::get_mT2(
+            visible_mass, l1.Px(), l1.Py(),
+            visible_mass, l2.Px(), l2.Py(),
+            -pair.Px(), -pair.Py(),
+            chi10_mass, chi10_mass);
+}
 
 void store_var(string name, double val) {
     if (var_map.count(name) == 0) {
@@ -77,15 +98,14 @@ void write_csv(const char *csv_filename) {
     ofs.close();
 }
 
-void reader(const char *c_name = "elastic", const char* out_name = "") {
-    const bool full_path = true;
+void reader(const char *c_name = "elastic", const char *out_name = 0) {
+    const bool full_path = out_name != 0;
     string name(c_name);
     string cfilename;
     if (full_path) {
         name = string(out_name);
         cfilename = c_name;
-    }
-    else
+    } else
         cfilename = "../ggll_" + name + ".root";
     string cfilename2 = "computed_" + name + ".root";
     string ccsv_filename = name + ".csv";
@@ -97,7 +117,6 @@ void reader(const char *c_name = "elastic", const char* out_name = "") {
     int N = tree->GetEntriesFast();
     ggll::AnalysisEvent evt;
 
-    string type = "Muon";
 //  if(filename.find("e.root") != string::npos)
 //    type = "Electron";
 
@@ -167,7 +186,8 @@ void reader(const char *c_name = "elastic", const char* out_name = "") {
             //if ( 1.-fabs( evt.Pair_dphi[j] )/M_PI > 0.009 ) continue;
             //if ( evt.Pair_mass[j] < 110. ) continue;
 
-            set <string> bgs = {"ww", "elastic", "dy", "dy_10k", "dy_1M", "dy2", "dy3", "ttbar", "ppww", "ppwz", "ppzz"};
+            set <string> bgs = {"ww", "elastic", "dy", "dy_10k", "dy_1M", "dy2", "dy3", "ttbar", "ppww", "ppwz",
+                                "ppzz", "dyjets"};
 
             const unsigned int l1 = evt.Pair_lepton1[j], l2 = evt.Pair_lepton2[j];
             double El1, El2;
@@ -236,7 +256,6 @@ void reader(const char *c_name = "elastic", const char* out_name = "") {
             WmissA[i] = Wmiss;
             WggA[i] = Wgg;
             double Emiss = p_miss.E();
-            double Chi10mass = 97;
             double mumass = 105.658 * 1e-3;
             double pair_dphi = evt.Pair_dphi[j];
             double extratracks = evt.Pair_extratracks0p5mm[j];
@@ -250,7 +269,7 @@ void reader(const char *c_name = "elastic", const char* out_name = "") {
             pho_aco = 1. - fabs(pho_dphi) / M_PI;
             slep_aco = 1. - fabs(evt.GenSLRPair_dphi) / M_PI;
             pair_aco = 1. - fabs(evt.Pair_dphi[j]) / M_PI;
-            mreco = 0.5 * sqrt(pow(Wgg, 2) - sqrt(pow(Wmiss, 2) - 4 * pow(Chi10mass, 2)) +
+            mreco = 0.5 * sqrt(pow(Wgg, 2) - sqrt(pow(Wmiss, 2) - 4 * pow(chi10_mass, 2)) +
                                sqrt(pow(Wlep, 2) - 4 * pow(mumass, 2)));
             double mreco2 = 2 * mreco;
 
@@ -264,6 +283,8 @@ void reader(const char *c_name = "elastic", const char* out_name = "") {
             double pt2 = pl2.Pt();
             double deltaR = sqrt(pow(pl2.Eta() - pl1.Eta(), 2) + pow(pl2.Phi() - pl1.Phi(), 2));
             double Et = lep_pair.Et();
+            double HTlep = pt1 + pt2;
+            double mt2 = MT2(pl1, pl2);
 
 
             store_var("Wgg", Wgg);
@@ -271,9 +292,9 @@ void reader(const char *c_name = "elastic", const char* out_name = "") {
             store_var("Emiss", Emiss);
             store_var("Wlep", Wlep);
             store_var("Wgenlep", Wgenlep);
-            store_var("mreco", mreco);
-            store_var("mreco2", mreco2);
-            store_var("pair_mass", pair_mass);
+//            store_var("mreco", mreco);
+//            store_var("mreco2", mreco2);
+//            store_var("pair_mass", pair_mass);
             store_var("extratracks", extratracks);
             store_var("pair_dphi", pair_dphi);
             store_var("kvc_z", kvc_z);
@@ -295,12 +316,19 @@ void reader(const char *c_name = "elastic", const char* out_name = "") {
             store_var("Et", Et);
             store_var("xip", xip);
             store_var("xim", xim);
+            store_var("xiP1", 1-p1.Pz()/P1.Pz());
+            store_var("xiP2", 1-p2.Pz()/P2.Pz());
             store_var("Pt", lep_pair.Pt());
             store_var("Mt", sqrt(lep_pair.E() * lep_pair.E() - lep_pair.Pz() * lep_pair.Pz()));
+            store_var("mt2_100", mt2);
+            store_var("HTlep", HTlep);
+            store_var("ETmissOverHTlep", Et/HTlep);
+            store_var("atlasCut1", max((double)3, 15 - 2 * (mt2 - chi10_mass)));
+
             if (bgs.find(name) == bgs.end()) {
                 store_var("slep_pair_y", slep_pair.Rapidity());
-                store_var("pair_y", lep_pair.Rapidity());
             }
+            store_var("pair_y", lep_pair.Rapidity());
             n_rows++;
 //      h_pair_mass.Fill( evt.Pair_mass[j] );
 //      h_extratracks.Fill( evt.Pair_extratracks0p5mm[j] );

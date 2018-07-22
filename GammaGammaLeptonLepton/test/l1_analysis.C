@@ -1,4 +1,4 @@
-#include <cfloat>
+
 #include <time.h>
 #include "TH1.h"
 #include <string>
@@ -72,20 +72,19 @@ public:
 
 class Sample {
 public:
-    Sample(string file, string leg, string short_leg, double cx, int c, bool line = false) : filename(file),
+    Sample(string file, string leg, string short_leg, double cx, bool line = false) : filename(file),
                                                                                              legend(leg),
                                                                                              short_legend(short_leg),
-                                                                                             crossx(cx), color(c),
+                                                                                             crossx(cx),
                                                                                              line(line) {};
 
-    Sample(string file, string leg, double cx, int c, bool line = false) : filename(file), legend(leg),
-                                                                           short_legend(leg), crossx(cx), color(c),
+    Sample(string file, string leg, double cx, bool line = false) : filename(file), legend(leg),
+                                                                           short_legend(leg), crossx(cx),
                                                                            line(line) {};
     string filename;
     string legend;
     string short_legend;
     double crossx;
-    int color;
     bool line;
     double factor = 1;
 
@@ -122,28 +121,27 @@ double signal_crossx = lm1mur_crossx;
 
 vector <string> display_names;
 vector <string> files;
-vector<int> colors;
+vector<int> colors = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 14, 15};
 vector<double> crossx;
 
-Sample *elastic = new Sample("computed_elastic.root", "Elastic #gamma#gamma -> #mu_{R}^{+}#mu_{R}^{-}", elastic_crossx,
-                             4);
-Sample *slr2 = new Sample("computed_slr2.root", "LM1 #mu_{R}", lm1mur_crossx, 12);
+Sample *elastic = new Sample("computed_elastic.root", "Elastic #gamma#gamma -> #mu_{R}^{+}#mu_{R}^{-}", elastic_crossx);
+Sample *slr2 = new Sample("computed_slr2.root", "LM1 #mu_{R}", lm1mur_crossx);
 Sample *slr2_x10_80_old = new Sample("computed_slr2_x10_80_old.root", "LM1 #mu_{R} with m(#chi_{1}^{0}) = 80 GeV)",
                                      "LM1 #mu_{R}",
-                                     lm1mur_x10_80_crossx_old, 2);
+                                     lm1mur_x10_80_crossx_old);
 Sample *slr2_x10_80 = new Sample("computed_slr2_x10_80.root", "LM1 #mu_{R} with m(#chi_{1}^{0}) = 80 GeV)",
                                  "LM1 #mu_{R}",
-                                 lm1mur_x10_80_crossx, 6);
-Sample *slr2_lm6 = new Sample("computed_slr2_lm6.root", "LM6 #mu_{R}", lm1mur_lm6_crossx, 7);
+                                 lm1mur_x10_80_crossx);
+Sample *slr2_lm6 = new Sample("computed_slr2_lm6.root", "LM6 #mu_{R}", lm1mur_lm6_crossx);
 Sample *slr2_lm6_x10_130 = new Sample("computed_slr2_lm6_x10_130.root", "LM6 #mu_{R} with m(#chi_{1}^{0}) = 130 GeV)",
                                       "LM6 #mu_{R}",
-                                      lm1mur_lm6_x10_130_crossx, 10);
-Sample *sll3 = new Sample("computed_sll3.root", "LM1 #mu_{L}", lm1mul_crossx, 11);
-Sample *ww = new Sample("computed_ww.root", "W^{+}W^{-} -> #mu^{+}#mu^{-}", ww_crossx, 9);
-//Sample *dy = new Sample("computed_dy_10k.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY", dy_crossx, 8);
-Sample *dy = new Sample("computed_dy_1M.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY", cms_dy_crossx1, 8);
-//Sample *dy2 = new Sample("computed_dy2_1M.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY", cms_dy_crossx2, 8);
-//Sample *dy3 = new Sample("computed_dy3_1M.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY", cms_dy_crossx3, 8);
+                                      lm1mur_lm6_x10_130_crossx);
+Sample *sll3 = new Sample("computed_sll3.root", "LM1 #mu_{L}", lm1mul_crossx);
+Sample *ww = new Sample("computed_ww.root", "W^{+}W^{-} -> #mu^{+}#mu^{-}", ww_crossx);
+//Sample *dy = new Sample("computed_dy_10k.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY", dy_crossx);
+Sample *dy = new Sample("computed_dy_1M.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY1", cms_dy_crossx1);
+Sample *dy2 = new Sample("computed_dy2.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY2", cms_dy_crossx2);
+Sample *dy3 = new Sample("computed_dy3.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY3", cms_dy_crossx3);
 
 vector <VariableCut> l1_cuts = {
         VariableCut("Pt", 2, 10000, 0, 50, false),
@@ -181,10 +179,10 @@ vector <VariableCut> xip_cuts = {
 };
 
 vector <VariableCut> dy_test = {
-        VariableCut("xip", 0.03, 0.15, 0, 0.2),
-        VariableCut("Wlep", 80, 100, 50, 150, true, true),
-        VariableCut("pair_aco", 0.10, 2, 0, 1),
-        VariableCut("Wlep", -10, 2000, 0, 1,false)
+        VariableCut("xip", 0.03, 0.15, 0, 0.2, false),
+        VariableCut("Wlep", 80, 100, 50, 150, false, true),
+        VariableCut("pair_aco", 0.25, 2, 0, 1),
+        VariableCut("Wlep", 0, 250)
 };
 
 //vector <Sample> all_samples = {
@@ -210,9 +208,9 @@ vector <VariableCut> dy_test = {
 // Change
 vector <VariableCut> use_cuts = dy_test;
 const char *pdfname = "dy_reduction.pdf";
-vector<Sample *> use_samples = {dy, slr2, slr2_lm6};
+vector<Sample *> use_samples = {dy, dy2, dy3, slr2, slr2_lm6};
 
-int max_events = 10000;
+long long max_events = 100000;
 int n_bins = 80;
 vector<long int> n_events;
 int n_vars;
@@ -253,7 +251,7 @@ vector <vector<TH1F *>> load_files(vector <string> files, vector <VariableCut> c
         for (int k = 0; k < n_vars; k++) {
             t->SetBranchAddress(c_names[k], &val_map.find(cuts[k].variable)->second);
         }
-        long int N = t->GetEntriesFast();
+        long int N = std::min(t->GetEntriesFast(), max_events);
         n_events.push_back(N);
         for (int j = 0; j < N; j++) {
             t->GetEntry(j);
@@ -288,14 +286,14 @@ void plot_hist_legend(int j) {
 
 void l1_analysis() {
     // Scale samples
-    dy->scale(5 / 2.7e+06);
-    dy->line = true;
+    dy->scale(3 / 5.5e+06);
+    dy2->scale(3 / 5.5e+06);
+    dy3->scale(3 / 5.5e+06);
     slr2->line = true;
     slr2_lm6->line = true;
 
     for (Sample *sample : use_samples) {
         crossx.push_back(sample->crossx);
-        colors.push_back(sample->color);
         files.push_back(sample->filename);
         display_names.push_back(sample->legend);
     }
