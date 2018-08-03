@@ -1,0 +1,27 @@
+{
+"name": "testi",
+"datasets": ["dytracksFull", "final_2Full"],
+"cuts": [
+	{ "name": "trackiso", "range": ["-inf","inf"]},
+	{ "name": "ecaliso", "range": ["-inf","inf"]},
+	{ "name": "nPrimTracks", "range": ["-inf","inf"]},
+	{ "name": "Wlep", "range": ["-inf","inf"]},
+	{ "name": "ptl1", "range": ["-inf","inf"]},
+	{ "name": "ptl2", "range": ["-inf","inf"]},
+	{ "name": "deltaR", "range": ["-inf","inf"]},
+	{ "name": "ptl1l2", "range": ["-inf","inf"]},
+	{ "name": "ptTot", "range": ["-inf","inf"]},
+	{ "name": "eta1", "range": ["-inf","inf"]},
+	{ "name": "eta2", "range": ["-inf","inf"]},
+	{ "name": "xi11", "range": ["-inf","inf"]},
+	{ "name": "xi21", "range": ["-inf","inf"]},
+	{ "name": "invdetA", "range": ["-inf","inf"]},
+	{ "name": "xi3", "range": ["-inf","inf"]},
+	{ "name": "ptMiss", "range": ["-inf","inf"]},
+	{ "name": "pair_mass", "range": ["-inf","inf"]},
+	{ "name": "xim", "range": ["-inf","inf"]},
+	{ "name": "xip", "range": ["-inf","inf"]}
+	],
+"pointsCut": 
+	]
+}

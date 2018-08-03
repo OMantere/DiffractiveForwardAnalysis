@@ -1,3 +1,7 @@
 .idea
 *.pyc
 *.root
+*.sw?
+*.pdf
+*.txt
+*.o

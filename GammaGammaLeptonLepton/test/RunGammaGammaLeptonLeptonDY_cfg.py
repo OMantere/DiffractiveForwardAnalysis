@@ -22,8 +22,8 @@ process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
 #'/store/data/Run2016G/DoubleEG/AOD/23Sep2016-v1/100000/0042DBD3-BA8E-E611-919E-002481ACDAA8.root',
 #'file:/afs/cern.ch/user/j/jmantere/private/cms/CMSSW_9_2_3/src/ww_1k.root',
-#"/store/mc/RunIIFall17DRPremix/DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8/AODSIM/PU2017RECOPF_94X_mc2017_realistic_v11-v1/50000/FEFA3BA6-9B67-E811-8CAE-0025905A6092.root"
-FILEIN
+"/store/mc/RunIIFall17DRPremix/DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8/AODSIM/PU2017RECOPF_94X_mc2017_realistic_v11-v1/50000/FEFA3BA6-9B67-E811-8CAE-0025905A6092.root"
+#FILEIN
     ),
     #firstEvent = cms.untracked.uint32(0)
 )
@@ -132,7 +132,7 @@ process.ggll_aod.phoIdLabels = cms.PSet(
 
 # prepare the output file
 process.TFileService = cms.Service('TFileService',
-    fileName = cms.string(FILEOUT),
+    fileName = cms.string("dy.root"),
     closeFileFast = cms.untracked.bool(True)
 )
 

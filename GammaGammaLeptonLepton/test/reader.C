@@ -50,8 +50,8 @@ double smeared(double q) {
 }
 
 char delimiter = ',';
-int max_events = 10000;
-int max_vars = 50;
+int max_events = 1000000;
+int max_vars = 75;
 int n_vars = 0;
 int n_rows = 0;
 vector<vector<double>> var_v(max_events, vector<double>(max_vars));
@@ -80,11 +80,13 @@ void write_csv(const char* csv_filename) {
   ofs.close();
 }
 
-void reader(const char* c_name = "elastic")
+void reader(const char* c_name = "elastic", const char* fout = "computed")
 {
   string name(c_name);
-  string cfilename = "../ggll_"+name+".root";
-  string cfilename2 = "computed_"+name+".root";
+  //cout << "SES VITTU SAATANA PERKELE" << endl;
+  string cfilename = name;
+  string name2(fout);
+  string cfilename2 = name2;
   string ccsv_filename= name+".root";
   const char* filename = cfilename.c_str();
   const char* filename2 = cfilename2.c_str();
@@ -115,6 +117,7 @@ void reader(const char* c_name = "elastic")
 
   cout << "Entries: " << N << endl;
   for ( unsigned long long i = 0; i < tree->GetEntriesFast(); ++i ) {
+  //for(unsigned long long i = 0; i < 500000; i++){
     tree->GetEntry( i );
     //cout << ">>> event " << i << endl;
     /*cout << "- fired triggers:" << endl;
@@ -148,8 +151,8 @@ void reader(const char* c_name = "elastic")
       } else {
         El1 = evt.EleCand_e[l1];
         El2 = evt.EleCand_e[l2];
-        xip = ( evt.EleCand_pt[l1]*exp( +evt.EleCand_eta[l1] ) + evt.EleCand_pt[l2]*exp( +evt.EleCand_eta[l2] ) ) / 13.e3;
-        xim = ( evt.EleCand_pt[l1]*exp( -evt.EleCand_eta[l1] ) + evt.EleCand_pt[l2]*exp( -evt.EleCand_eta[l2] ) ) / 13.e3;
+       // xip = ( evt.EleCand_pt[l1]*exp( +evt.EleCand_eta[l1] ) + evt.EleCand_pt[l2]*exp( +evt.EleCand_eta[l2] ) ) / 13.e3;
+       // xim = ( evt.EleCand_pt[l1]*exp( -evt.EleCand_eta[l1] ) + evt.EleCand_pt[l2]*exp( -evt.EleCand_eta[l2] ) ) / 13.e3;
         pl1g.SetPtEtaPhiE(evt.GenEleCand_pt[0], evt.GenEleCand_eta[0], evt.GenEleCand_phi[0], evt.GenEleCand_e[0]);
         pl2g.SetPtEtaPhiE(evt.GenEleCand_pt[1], evt.GenEleCand_eta[1], evt.GenEleCand_phi[1], evt.GenEleCand_e[1]);
         pl1.SetPtEtaPhiE(evt.EleCand_pt[l1], evt.EleCand_eta[l1], evt.EleCand_phi[l1], evt.EleCand_e[l1]);
@@ -159,6 +162,8 @@ void reader(const char* c_name = "elastic")
       // We don't have working photons for now
 //      pg1.SetPtEtaPhiE(evt.GenPhotCand_pt[0], evt.GenPhotCand_eta[0], evt.GenPhotCand_phi[0], evt.GenPhotCand_e[0]);
 //      pg2.SetPtEtaPhiE(evt.GenPhotCand_pt[1], evt.GenPhotCand_eta[1], evt.GenPhotCand_phi[1], evt.GenPhotCand_e[1]);
+      xip = (P1.Pz() - p1.Pz())/P1.Pz();
+      xim = (P2.Pz() - p2.Pz())/P2.Pz();
       pg1 = P1 - p1;
       pg2 = P2 - p2;
       Wgg = 2 * sqrt(pg1.E()*pg2.E());
@@ -192,6 +197,30 @@ void reader(const char* c_name = "elastic")
       double ptTot = sqrt(p1.Px()*p1.Px() + p1.Py()*p1.Py()) + sqrt(p2.Px()*p2.Px() + p2.Px()*p2.Px()); // Total Pt, calculated from diffracted protons
 
 
+      int nPrimVertex = evt.nPrimVertexCand;
+//      cout<<nPrimVertex<<endl;
+
+      double dd = 10000;
+      
+      int nTracks2 = 0;
+
+      for(int k = 0; k<nPrimVertex; k++){
+          double dx = evt.PrimVertexCand_x[k] - evt.KalmanVertexCand_x[k];
+          double dy = evt.PrimVertexCand_y[k] - evt.KalmanVertexCand_y[k];
+          double dz = evt.PrimVertexCand_z[k] - evt.KalmanVertexCand_z[k];
+
+          double distance = sqrt(dx*dx + dy*dy + dz*dz);
+
+          if(dd > distance){
+              dd = distance;
+              nTracks2 = evt.PrimVertexCand_tracks[k];
+          }
+
+      }
+
+      //cout << dd << endl;
+
+      store_var("nPrimTracks", nTracks2);
       store_var("Wgg", Wgg);
       store_var("Wmiss", Wmiss);
       store_var("Emiss", Emiss);
@@ -215,6 +244,8 @@ void reader(const char* c_name = "elastic")
       store_var("xip", xip);
       store_var("xim", xim);
 
+      store_var("minDist", dd);
+
       double deltaR = sqrt(pow(evt.MuonCand_eta[l2] - evt.MuonCand_eta[l1], 2) + pow(evt.MuonCand_phi[l2] - evt.MuonCand_phi[l1], 2));
 
 
@@ -233,9 +264,32 @@ void reader(const char* c_name = "elastic")
       double rapidityl2 = rapidity(pl2);
       double rapiditysl = rapidity(pg1+pg2);
 
+      double l1Phi = pl1.Phi();
+      double l2Phi = pl2.Phi();
+
       double a = 1 - pair_dphi/M_PI;
       double slMass = (pg1 + pg2).M();
 
+      double detA = (pl1.Px()*pl2.Py() - pl2.Px()*pl1.Py());
+
+      double xi1 = 1/detA*(lep_pair.Px()*pl2.Py()-lep_pair.Py()*pl2.Px());//Atlas paper, page 10
+      double xi2 = 1/detA*(lep_pair.Py()*pl1.Px()-lep_pair.Px()*pl1.Py());
+
+      double mtaus2 = 2*pl1*pl2*(1+xi1)*(1+xi2);
+      double xi11 = xi1-1;
+      double xi21 = xi2-1;
+
+      double xiPrime = lep_pair.Px()*pl2.Py()-lep_pair.Py()*pl1.Px();
+
+      double xi3 = 1/detA*(lep_pair.Px()*pl2.Py()-lep_pair.Py()*pl1.Px());
+      double xi4 = 1/detA*(lep_pair.Px()*pl1.Py()-lep_pair.Py()*pl2.Px());
+      double xi5 = lep_pair.Px()*pl1.Py()-lep_pair.Py()*pl1.Px();
+
+      //cout << xi1 << ", " << xi2 << endl;
+      store_var("deltaR", deltaR);
+      store_var("ptl1l2", ptl1l2);
+      store_var("ptl1", ptl1);
+      store_var("ptl2", ptl2);
       store_var("etal1l2", etal1l2);
       store_var("eta1", eta1);
       store_var("eta2", eta2);
@@ -245,7 +299,30 @@ void reader(const char* c_name = "elastic")
       store_var("rapiditysl", rapiditysl);
       store_var("a", a);
       store_var("slMass",  slMass);
-      
+      store_var("xi1", xi1);
+      store_var("xi2", xi2);
+      store_var("xi3", xi3);
+      store_var("xi4", xi4);
+      store_var("xi5", xi5);
+      store_var("xi11", xi11);
+      store_var("xi21", xi21);
+      store_var("invdetA", 1/detA);
+      store_var("xiPrime", xiPrime);
+      store_var("mtaus2", mtaus2);
+      store_var("l1Phi", l1Phi);
+      store_var("l2Phi", l2Phi);
+
+    // Isolation parameters
+      double trackiso = evt.MuonCand_trackiso[j];
+      double ecaliso = evt.MuonCand_ecaliso[j];
+      double hcaliso = evt.MuonCand_hcaliso[j];
+
+      //cout<<trackiso<<endl;
+
+      store_var("trackiso", trackiso);
+      store_var("ecaliso", ecaliso);
+      store_var("hcaliso", hcaliso);
+
       n_rows++;
     }
   }
