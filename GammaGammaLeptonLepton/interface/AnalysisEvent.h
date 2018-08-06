@@ -122,6 +122,12 @@ namespace ggll
       int MuonCand_isglobal[MAX_LL], MuonCand_istracker[MAX_LL], MuonCand_isstandalone[MAX_LL], MuonCand_ispfmuon[MAX_LL];
       int MuonCand_istight[MAX_LL];
 
+      // Added by Kristian
+
+      double MuonCand_trackiso[MAX_LL];
+      double MuonCand_ecaliso[MAX_LL];
+      double MuonCand_hcaliso[MAX_LL];
+
       // Electron quantities
       unsigned int nEleCand;
       double EleCand_pt[MAX_LL], EleCand_eta[MAX_LL], EleCand_phi[MAX_LL], EleCand_e[MAX_LL];
@@ -270,6 +276,10 @@ namespace ggll
           EleCand_convDist[i] = EleCand_convDcot[i] = -999.;
           EleCand_ecalDriven[i] = -999;
           EleCand_tightID[i] = EleCand_mediumID[i] = -1;
+
+          MuonCand_trackiso[i] = -999;
+          MuonCand_ecaliso[i] = -999;
+          MuonCand_hcaliso[i] = -999;
         }
 
         // single photon candidates
@@ -397,6 +407,12 @@ namespace ggll
           tree->Branch( "MuonCand_innerTrackEta", MuonCand_innerTrackEta, "MuonCand_innerTrackEta[nMuonCand]/D" );
           tree->Branch( "MuonCand_innerTrackPhi", MuonCand_innerTrackPhi, "MuonCand_innerTrackPhi[nMuonCand]/D" );
           tree->Branch( "MuonCand_innerTrackVtxz", MuonCand_innerTrackVtxz, "MuonCand_innerTrackVtxz[nMuonCand]/D" );
+
+          //Added by Kristian
+          tree->Branch( "MuonCand_trackiso", MuonCand_trackiso, "MuonCand_trackiso[nMuonCand]/D");
+          tree->Branch( "MuonCand_ecaliso", MuonCand_ecaliso, "MuonCand_ecaliso[nMuonCand]/D");
+          tree->Branch( "MuonCand_hcalkiso", MuonCand_hcaliso, "MuonCand_hcaliso[nMuonCand]/D");
+
           if ( mc ) {
             tree->Branch( "nGenMuonCand", &nGenMuonCand, "nGenMuonCand/i" );
             tree->Branch( "nGenMuonCandOutOfAccept", &nGenMuonCandOutOfAccept, "nGenMuonCandOutOfAccept/i" );
@@ -644,6 +660,9 @@ namespace ggll
           tree->SetBranchAddress( "MuonCand_innerTrackEta", MuonCand_innerTrackEta );
           tree->SetBranchAddress( "MuonCand_innerTrackPhi", MuonCand_innerTrackPhi );
           tree->SetBranchAddress( "MuonCand_innerTrackVtxz", MuonCand_innerTrackVtxz );
+          tree->SetBranchAddress( "MuonCand_trackiso", MuonCand_trackiso);
+          tree->SetBranchAddress( "MuonCand_ecaliso", MuonCand_ecaliso);
+          tree->SetBranchAddress( "MuonCand_hcaliso", MuonCand_hcaliso);
           if ( mc ) {
             tree->SetBranchAddress( "nGenMuonCand", &nGenMuonCand );
             tree->SetBranchAddress( "nGenMuonCandOutOfAccept", &nGenMuonCandOutOfAccept );

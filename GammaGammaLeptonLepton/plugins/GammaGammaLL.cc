@@ -445,6 +445,10 @@ GammaGammaLL::fetchMuons( const edm::Event& iEvent )
     }
     muonsMomenta_.insert( std::pair<int,TLorentzVector>( evt_.nMuonCand, leptonptmp ) );
 
+    evt_.MuonCand_trackiso[evt_.nMuonCand] = muon->trackIso()/muon->pt();
+    evt_.MuonCand_ecaliso[evt_.nMuonCand] = muon->ecalIso()/muon->et();
+    evt_.MuonCand_hcaliso[evt_.nMuonCand] = muon->hcalIso()/muon->et();
+
     if ( evt_.MuonCand_isglobal[evt_.nMuonCand] && evt_.MuonCand_istracker[evt_.nMuonCand] ) {
       evt_.MuonCand_innerTrackPt[evt_.nMuonCand] = muon->innerTrack()->pt();
       evt_.MuonCand_innerTrackEta[evt_.nMuonCand] = muon->innerTrack()->eta();
