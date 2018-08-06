@@ -10,9 +10,10 @@ process = cms.Process('NoSplit')
 #########################
 
 
-#process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+# process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
 # process.MessageLogger.cerr.FwkReport.reportEvery = 1000
+# process.options = cms.untracked.PSet( SkipEvent = cms.untracked.vstring('InvalidDetId') )
 
 #########################
 #      Input files      #
@@ -25,7 +26,9 @@ process.source = cms.Source("PoolSource",
 #   'file:/afs/cern.ch/user/j/jmantere/private/cms/CMSSW_9_4_0/src/final.root',
 #   '/ZToMuMu_NNPDF31_13TeV-powheg_M_50_120/RunIIFall17DRPremix-PU2017_94X_mc2017_realistic_v11-v2/AODSIM',
 #   '/store/mc/RunIIFall17DRPremix/TTTo2L2Nu_TuneCP5down_PSweights_13TeV-powheg-pythia8/AODSIM/PU2017_94X_mc2017_realistic_v11-v1/00000/02705333-A03B-E811-8232-1CC1DE1D1E3C.root',
-  '/store/mc/RunIIFall17DRPremix/TTTo2L2Nu_TuneCP5up_PSweights_13TeV-powheg-pythia8/AODSIM/PU2017_94X_mc2017_realistic_v11-v1/100000/560BE6FE-763A-E811-B8D6-A4BF0112BE24.root',
+  '/store/mc/RunIIFall17DRPremix/DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8/AODSIM/PU2017RECOPF_94X_mc2017_realistic_v11-v1/50000/FEFA3BA6-9B67-E811-8CAE-0025905A6092.root',
+#     'file:/afs/cern.ch/work/j/jmantere/public/forKristian/lm1mur_reco_v3/output.root',
+#   'file:SDFAST.root',
 # '/ZToMuMu_NNPDF31_13TeV-powheg_M_200_400/RunIIFall17DRPremix-94X_mc2017_realistic_v10-v1/AODSIM',
 #   '/store/mc/RunIIFall17DRPremix/ZToMuMu_NNPDF31_13TeV-powheg_M_50_120/AODSIM/PU2017_94X_mc2017_realistic_v11-v2/90000/FEAA6CA7-8645-E811-90BE-FA163EC11CAA.root',
 # 'file:/afs/cern.ch/user/k/karjas/private/CMSSW/dataFold/Events/wwllbg.root'
@@ -116,10 +119,13 @@ process.load("DiffractiveForwardAnalysis.GammaGammaLeptonLepton.GammaGammaLL_cfi
 
 process.ggll_aod.triggersList = process.hltFilter.HLTPaths
 process.ggll_aod.leptonsType = cms.string('Muon')
+# process.ggll_aod.MCAcceptPtCut = cms.untracked.double(4.0),
+# process.ggll_aod.MCAcceptEtaCut = cms.untracked.double(2.4),
 # process.ggll_aod.leptonsType = cms.string('ElectronMuon')
 # process.ggll_aod.leptonsType = cms.string('Electron')
 process.ggll_aod.runOnMC = cms.bool(runOnMC)
 process.ggll_aod.fetchProtons = cms.bool(False)
+process.ggll_aod.fetchJets = cms.bool(True)
 
 # E/gamma identification
 process.ggll_aod.eleIdLabels = cms.PSet(

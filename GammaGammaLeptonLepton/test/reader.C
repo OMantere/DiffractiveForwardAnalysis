@@ -11,6 +11,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <random>
 
 #include <time.h>
 #include "mt2.h"
@@ -48,7 +49,10 @@ double smeared(double q) {
 string type = "Muon";
 char delimiter = ',';
 int max_events = 1000000;
-int max_vars = 50;
+int max_protons = 100000;
+default_random_engine generator;
+uniform_int_distribution<int> proton_random;
+int max_vars = 100;
 int n_vars = 0;
 int n_rows = 0;
 const double mu_mass = 105.6583745 / 1000;
@@ -58,15 +62,57 @@ vector <vector<double>> var_v(max_events, vector<double>(max_vars));
 std::map<string, int> var_map;
 vector <std::pair<string, int>> keypairs;
 vector<char *> keys;
+vector <TLorentzVector> l_protons(max_protons);
+vector <TLorentzVector> r_protons(max_protons);
+double low_xi_acc = 6500 * (1 - 0.15);
+double high_xi_acc = 6500 * (1 - 0.03);
+
+
+void read_protons(const char *proton_filename = "acc_events.csv") {
+    ifstream ifs(proton_filename);
+    string line;
+    long long i = -1;
+    double pt, eta, phi, e;
+    bool left_proton = false;
+    bool right_proton = false;
+    while (ifs >> line) {
+        if (i == max_protons) break;
+        if (line != "event" && (!left_proton || !right_proton)) {
+            pt = stod(line);
+            ifs >> eta;
+            ifs >> phi;
+            ifs >> e;
+            if (eta < 0) {
+                l_protons[i].SetPtEtaPhiE(pt, eta, phi, e);
+                left_proton = true;
+            } else {
+                r_protons[i].SetPtEtaPhiE(pt, eta, phi, e);
+                right_proton = true;
+            }
+        } else if(line == "event") {
+            left_proton = right_proton = false;
+            i++;
+        }
+    }
+    cout << "Added " << (i + 1) << " proton events from file " << proton_filename << endl;
+    proton_random = uniform_int_distribution<int>(0, i);
+    ifs.close();
+}
+
+
+pair<TLorentzVector, TLorentzVector> get_diffraction_protons() {
+    int i = proton_random(generator);
+    return make_pair(l_protons[i], r_protons[i]);
+}
 
 
 double MT2(TLorentzVector l1, TLorentzVector l2) {
     double visible_mass;
-    if(type == "Muon")
+    if (type == "Muon")
         visible_mass = mu_mass;
     else
         visible_mass = e_mass;
-    TLorentzVector pair = l1+l2;
+    TLorentzVector pair = l1 + l2;
     asymm_mt2_lester_bisect::disableCopyrightMessage();
     return asymm_mt2_lester_bisect::get_mT2(
             visible_mass, l1.Px(), l1.Py(),
@@ -155,8 +201,15 @@ void reader(const char *c_name = "elastic", const char *out_name = 0) {
 //  tree->Branch("xim",&xim);
 //  tree->Branch("neutralino_mass",&neutralino_mass);
 
+    set <string> bgs = {"ww", "elastic", "dy", "dy_10k", "dy_1M", "dy2", "dy3", "ttbar", "ppww", "ppwz",
+                        "ppzz", "dyjets"};
+    set <string> gg_samples = {"ww", "elastic", "slr2"};
+    set <string> pp_bgs;
+    set_difference(bgs.begin(), bgs.end(), gg_samples.begin(), gg_samples.end(), inserter(pp_bgs, pp_bgs.end()));
+
     cout << "Entries: " << N << endl;
     start_time();
+    read_protons();
     for (unsigned long long i = 0; i < tree->GetEntriesFast(); ++i) {
         tree->GetEntry(i);
         //cout << ">>> event " << i << endl;
@@ -171,6 +224,11 @@ void reader(const char *c_name = "elastic", const char *out_name = 0) {
         TLorentzVector com(0, 0, 0, 13.e3);
         p1.SetPtEtaPhiE(evt.GenProtCand_pt[0], evt.GenProtCand_eta[0], evt.GenProtCand_phi[0], evt.GenProtCand_e[0]);
         p2.SetPtEtaPhiE(evt.GenProtCand_pt[1], evt.GenProtCand_eta[1], evt.GenProtCand_phi[1], evt.GenProtCand_e[1]);
+        if (pp_bgs.find(name) != pp_bgs.end()) {
+            pair<TLorentzVector, TLorentzVector> protons = get_diffraction_protons();
+            p2 = protons.first;
+            p1 = protons.second;
+        }
 
 
         for (unsigned int j = 0; j < evt.nPair; ++j) {
@@ -186,9 +244,6 @@ void reader(const char *c_name = "elastic", const char *out_name = 0) {
             //if ( 1.-fabs( evt.Pair_dphi[j] )/M_PI > 0.009 ) continue;
             //if ( evt.Pair_mass[j] < 110. ) continue;
 
-            set <string> bgs = {"ww", "elastic", "dy", "dy_10k", "dy_1M", "dy2", "dy3", "ttbar", "ppww", "ppwz",
-                                "ppzz", "dyjets"};
-
             const unsigned int l1 = evt.Pair_lepton1[j], l2 = evt.Pair_lepton2[j];
             double El1, El2;
             TLorentzVector pl1, pl2, pg1, pg2, pl1g, pl2g, psl1, psl2;
@@ -200,11 +255,6 @@ void reader(const char *c_name = "elastic", const char *out_name = 0) {
                            evt.GenRMuonCand_pt[l2] * exp(+evt.GenRMuonCand_eta[l2])) / 13.e3;
                     xim = (evt.GenRMuonCand_pt[l1] * exp(-evt.GenRMuonCand_eta[l1]) +
                            evt.GenRMuonCand_pt[l2] * exp(-evt.GenRMuonCand_eta[l2])) / 13.e3;
-                } else {
-                    xip = (evt.MuonCand_pt[l1] * exp(+evt.MuonCand_eta[l1]) +
-                           evt.MuonCand_pt[l2] * exp(+evt.MuonCand_eta[l2])) / 13.e3;
-                    xim = (evt.MuonCand_pt[l1] * exp(-evt.MuonCand_eta[l1]) +
-                           evt.MuonCand_pt[l2] * exp(-evt.MuonCand_eta[l2])) / 13.e3;
                 }
                 pl1g.SetPtEtaPhiE(evt.GenMuonCand_pt[0], evt.GenMuonCand_eta[0], evt.GenMuonCand_phi[0],
                                   evt.GenMuonCand_e[0]);
@@ -224,11 +274,6 @@ void reader(const char *c_name = "elastic", const char *out_name = 0) {
                            evt.GenREleCand_pt[l2] * exp(+evt.GenREleCand_eta[l2])) / 13.e3;
                     xim = (evt.GenREleCand_pt[l1] * exp(-evt.GenREleCand_eta[l1]) +
                            evt.GenREleCand_pt[l2] * exp(-evt.GenREleCand_eta[l2])) / 13.e3;
-                } else {
-                    xip = (evt.EleCand_pt[l1] * exp(+evt.EleCand_eta[l1]) +
-                           evt.EleCand_pt[l2] * exp(+evt.EleCand_eta[l2])) / 13.e3;
-                    xim = (evt.EleCand_pt[l1] * exp(-evt.EleCand_eta[l1]) +
-                           evt.EleCand_pt[l2] * exp(-evt.EleCand_eta[l2])) / 13.e3;
                 }
                 pl1g.SetPtEtaPhiE(evt.GenEleCand_pt[0], evt.GenEleCand_eta[0], evt.GenEleCand_phi[0],
                                   evt.GenEleCand_e[0]);
@@ -246,6 +291,7 @@ void reader(const char *c_name = "elastic", const char *out_name = 0) {
             pg1 = P1 - p1;
             pg2 = P2 - p2;
             Wgg = 2 * sqrt(pg1.E() * pg2.E());
+            double Etmiss = evt.Etmiss;
             const TLorentzVector lep_pair = pl1 + pl2;
             const TLorentzVector slep_pair = psl1 + psl2;
             const TLorentzVector gen_lep_pair = pl1g + pl2g;
@@ -271,7 +317,6 @@ void reader(const char *c_name = "elastic", const char *out_name = 0) {
             pair_aco = 1. - fabs(evt.Pair_dphi[j]) / M_PI;
             mreco = 0.5 * sqrt(pow(Wgg, 2) - sqrt(pow(Wmiss, 2) - 4 * pow(chi10_mass, 2)) +
                                sqrt(pow(Wlep, 2) - 4 * pow(mumass, 2)));
-            double mreco2 = 2 * mreco;
 
             double ptMiss = sqrt(p_miss.Px() * p_miss.Px() + p_miss.Py() * p_miss.Py()); // Missing transfers momentum
             double ptTot = sqrt(p1.Px() * p1.Px() + p1.Py() * p1.Py()) +
@@ -286,19 +331,31 @@ void reader(const char *c_name = "elastic", const char *out_name = 0) {
             double HTlep = pt1 + pt2;
             double mt2 = MT2(pl1, pl2);
 
+            int closestPrimVertex = 0;
+            double smallestDist = DBL_MAX;
+            for (int ii = 0; ii < evt.nPrimVertexCand; ii++) {
+                double newDist = sqrt(pow(evt.PrimVertexCand_x[ii] - evt.KalmanVertexCand_x[j], 2) +
+                                      pow(evt.PrimVertexCand_y[ii] - evt.KalmanVertexCand_y[j], 2) +
+                                      pow(evt.PrimVertexCand_z[ii] - evt.KalmanVertexCand_z[j], 2));
+                if (newDist < smallestDist) {
+                    smallestDist = newDist;
+                    closestPrimVertex = ii;
+                }
+            }
 
+            double detA = (pl1.Px() * pl2.Py() - pl2.Px() * pl1.Py());
+            double xi1 = 1 / detA * (lep_pair.Px() * pl2.Py() - lep_pair.Py() * pl2.Px());
+            double xi2 = 1 / detA * (lep_pair.Py() * pl1.Px() - lep_pair.Px() * pl1.Py());
+            double mtaus2 = 2 * pl1 * pl2 * (1 + xi1) * (1 + xi2);
+
+            store_var("extratracks2", evt.PrimVertexCand_tracks[closestPrimVertex]);
             store_var("Wgg", Wgg);
             store_var("Wmiss", Wmiss);
             store_var("Emiss", Emiss);
             store_var("Wlep", Wlep);
             store_var("Wgenlep", Wgenlep);
-//            store_var("mreco", mreco);
-//            store_var("mreco2", mreco2);
-//            store_var("pair_mass", pair_mass);
-            store_var("extratracks", extratracks);
             store_var("pair_dphi", pair_dphi);
             store_var("kvc_z", kvc_z);
-            store_var("slep_dphi", evt.GenSLRPair_dphi);
             store_var("pho_dphi", pho_dphi);
             store_var("slep_aco", slep_aco);
             store_var("pair_aco", pair_aco);
@@ -311,19 +368,23 @@ void reader(const char *c_name = "elastic", const char *out_name = 0) {
             store_var("pt1", pt1);
             store_var("pt2", pt2);
             store_var("deltaR", deltaR);
-            store_var("ptMiss", ptMiss);
-            store_var("ptTot", ptTot);
             store_var("Et", Et);
             store_var("xip", xip);
             store_var("xim", xim);
-            store_var("xiP1", 1-p1.Pz()/P1.Pz());
-            store_var("xiP2", 1-p2.Pz()/P2.Pz());
+            store_var("xiP1", 1 - p1.Pz() / P1.Pz());
+            store_var("xiP2", 1 - p2.Pz() / P2.Pz());
             store_var("Pt", lep_pair.Pt());
             store_var("Mt", sqrt(lep_pair.E() * lep_pair.E() - lep_pair.Pz() * lep_pair.Pz()));
             store_var("mt2_100", mt2);
             store_var("HTlep", HTlep);
-            store_var("ETmissOverHTlep", Et/HTlep);
-            store_var("atlasCut1", max((double)3, 15 - 2 * (mt2 - chi10_mass)));
+            store_var("EtmissOverHTlep", Etmiss / HTlep);
+//            store_var("atlasCut1", max((double) 3, 15 - 2 * (mt2 - chi10_mass)));
+            store_var("Etmiss", Etmiss);
+            double Wslep = slep_pair.M();
+            store_var("Wslep", Wslep);
+//            store_var("Wtot", 2 * lep_pair.E());
+//            store_var("mt_match_diff", (2 * mt2 - Wslep) / Wslep);
+//            store_var("Wtot_match_diff", (2 * lep_pair.E() - Wslep) / Wslep);
 
             if (bgs.find(name) == bgs.end()) {
                 store_var("slep_pair_y", slep_pair.Rapidity());
@@ -351,6 +412,8 @@ void reader(const char *c_name = "elastic", const char *out_name = 0) {
               }
             }*/
         }
+
+        if (n_rows == max_events) break;
     }
 
     // Scatter plots

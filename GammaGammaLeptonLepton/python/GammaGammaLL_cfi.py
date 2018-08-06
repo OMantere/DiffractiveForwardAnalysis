@@ -6,13 +6,14 @@ ggll_aod = cms.EDAnalyzer('GammaGammaLL',
     #maxExtraTracks = cms.untracked.uint32(10000),
     sqrtS = cms.double(13.e3), # in GeV
     fetchProtons = cms.bool(False), # retrieve the TOTEM/PPS info from the files (data only!)
+    fetchJets = cms.bool(True),
     usePileup = cms.bool(False),
     printCandidates = cms.bool(False),
 
     # MC tweaks
     runOnMC = cms.bool(True),
-    MCAcceptPtCut = cms.untracked.double(0.),
-    MCAcceptEtaCut = cms.untracked.double(-1.),
+    MCAcceptPtCut = cms.untracked.double(4.0),
+    MCAcceptEtaCut = cms.untracked.double(2.4),
 
     # HLT selection
     HLTMenuTag = cms.string('HLT'),

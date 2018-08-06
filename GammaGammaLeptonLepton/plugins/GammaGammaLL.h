@@ -136,7 +136,7 @@ class GammaGammaLL : public edm::one::EDAnalyzer<edm::one::SharedResources> {
       TTree* tree_;
       ggll::AnalysisEvent evt_;
 
-      bool fetchMuons_, fetchElectrons_, fetchProtons_;
+      bool fetchMuons_, fetchElectrons_, fetchProtons_, fetchJets_;
       bool usePileup_;
       bool foundPairInEvent_;
 
@@ -185,7 +185,7 @@ class GammaGammaLL : public edm::one::EDAnalyzer<edm::one::SharedResources> {
       std::map<int,TLorentzVector> muonsMomenta_, electronsMomenta_;
       std::map<unsigned int,reco::TransientTrack> muonTransientTracks_, eleTransientTracks_;
 
-      unsigned int nCandidates_;
+      unsigned int nCandidates_, nPrimaryAcc_, nSignalAcc_;
 };
 
 #endif

@@ -34,6 +34,7 @@ GammaGammaLL::GammaGammaLL( const edm::ParameterSet& iConfig ) :
   tree_( 0 ),
   fetchMuons_( false ), fetchElectrons_( false ),
   fetchProtons_       ( iConfig.getParameter<bool>( "fetchProtons" ) ),
+  fetchJets_          ( iConfig.getParameter<bool>( "fetchJets" ) ),
   usePileup_          ( iConfig.getParameter<bool>( "usePileup" ) ),
   hltMenuLabel_       ( iConfig.getParameter<std::string>( "HLTMenuTag" ) ),
   triggersList_       ( iConfig.getParameter<std::vector<std::string> >( "triggersList" ) ),
@@ -63,9 +64,11 @@ GammaGammaLL::GammaGammaLL( const edm::ParameterSet& iConfig ) :
   dataPileupFile_     ( iConfig.getParameter<std::string>( "datapufile" ) ),
   mcPileupPath_       ( iConfig.getParameter<std::string>( "mcpupath" ) ),
   dataPileupPath_     ( iConfig.getParameter<std::string>( "datapupath" ) ),
-  nCandidates_( 0 )
+  nCandidates_( 0 ),
+  nPrimaryAcc_( 0 ),
+  nSignalAcc_( 0 )
 {
-  evt_.nHLT = triggersList_.size();	
+  evt_.nHLT = triggersList_.size();
 
   // Generator level
   if ( runOnMC_ ) {
@@ -214,7 +217,7 @@ GammaGammaLL::analyze( const edm::Event& iEvent, const edm::EventSetup& iSetup )
 
   if ( fetchProtons_ ) fetchProtons( iEvent );
 
-  fetchJets( iEvent );
+  if ( fetchJets_ ) fetchJets( iEvent );
 
   // Missing ET
   edm::Handle<edm::View<pat::MET> > MET;
@@ -294,6 +297,9 @@ GammaGammaLL::analyzeMCEventContent( const edm::Event& iEvent )
       evt_.GenProtCand_phi[evt_.nGenProtCand] = genPart->phi();
       evt_.GenProtCand_e[evt_.nGenProtCand] = genPart->energy();
       evt_.GenProtCand_status[evt_.nGenProtCand] = genPart->status();
+      evt_.GenProtCand_vx[evt_.nGenProtCand] = genPart->vx();
+      evt_.GenProtCand_vy[evt_.nGenProtCand] = genPart->vy();
+      evt_.GenProtCand_vz[evt_.nGenProtCand] = genPart->vz();
       evt_.nGenProtCand++;
     }
 
@@ -336,7 +342,7 @@ GammaGammaLL::analyzeMCEventContent( const edm::Event& iEvent )
     foundGenCandPairInEvent = true;
   }
   // dielectron
-  else if ( leptonsType_ == ggll::DiElectron && evt_.nGenEleCand == 2 ) { // FIXME maybe a bit tight according to the newer PU conditions?
+  else if ( leptonsType_ == ggll::DiElectron && evt_.nGenEleCand >= 2 ) {
     l1.SetPtEtaPhiE( evt_.GenEleCand_pt[0], evt_.GenEleCand_eta[0], evt_.GenEleCand_phi[0], evt_.GenEleCand_e[0] );
     l2.SetPtEtaPhiE( evt_.GenEleCand_pt[1], evt_.GenEleCand_eta[1], evt_.GenEleCand_phi[1], evt_.GenEleCand_e[1] );
     slr1.SetPtEtaPhiE( evt_.GenREleCand_pt[0], evt_.GenREleCand_eta[0], evt_.GenREleCand_phi[0], evt_.GenREleCand_e[0] );
@@ -344,7 +350,7 @@ GammaGammaLL::analyzeMCEventContent( const edm::Event& iEvent )
     foundGenCandPairInEvent = true;
   }
   // dimuon
-  else if ( leptonsType_ == ggll::DiMuon && evt_.nGenMuonCand == 2 ) { // FIXME maybe a bit tight according to the newer PU conditions?
+  else if ( leptonsType_ == ggll::DiMuon && evt_.nGenMuonCand >= 2 ) {
     l1.SetPtEtaPhiE( evt_.GenMuonCand_pt[0], evt_.GenMuonCand_eta[0], evt_.GenMuonCand_phi[0], evt_.GenMuonCand_e[0] );
     l2.SetPtEtaPhiE( evt_.GenMuonCand_pt[1], evt_.GenMuonCand_eta[1], evt_.GenMuonCand_phi[1], evt_.GenMuonCand_e[1] );
     slr1.SetPtEtaPhiE( evt_.GenRMuonCand_pt[0], evt_.GenRMuonCand_eta[0], evt_.GenRMuonCand_phi[0], evt_.GenRMuonCand_e[0] );
@@ -354,7 +360,7 @@ GammaGammaLL::analyzeMCEventContent( const edm::Event& iEvent )
   if ( foundGenCandPairInEvent ) {
     chi10_1.SetPtEtaPhiE( evt_.GenChi10Cand_pt[0], evt_.GenChi10Cand_eta[0], evt_.GenChi10Cand_phi[0], evt_.GenChi10Cand_e[0] );
     chi10_2.SetPtEtaPhiE( evt_.GenChi10Cand_pt[1], evt_.GenChi10Cand_eta[1], evt_.GenChi10Cand_phi[1], evt_.GenChi10Cand_e[1] );
-    
+
     const TLorentzVector pair = l1+l2;
     const TLorentzVector slr_pair = slr1+slr2;
     const TLorentzVector chi10_pair = chi10_1+chi10_2;
@@ -407,6 +413,9 @@ GammaGammaLL::fetchMuons( const edm::Event& iEvent )
   for ( unsigned int i = 0; i < muonColl->size() && evt_.nMuonCand < ggll::AnalysisEvent::MAX_MUONS; ++i ) {
     const edm::Ptr<pat::Muon> muon = muonColl->ptrAt( i);
 
+    if(muon->pt() < minPtMC_ || (minEtaMC_ != -1. && fabs(muon->eta() ) > minEtaMC_))  // PT and eta cuts for PAT muons too
+      continue;
+
     evt_.MuonCand_pt[evt_.nMuonCand] = muon->pt();
     evt_.MuonCand_eta[evt_.nMuonCand] = muon->eta();
     evt_.MuonCand_phi[evt_.nMuonCand] = muon->phi();
@@ -423,6 +432,8 @@ GammaGammaLL::fetchMuons( const edm::Event& iEvent )
     evt_.MuonCand_istracker[evt_.nMuonCand] = muon->isTrackerMuon();
     evt_.MuonCand_isstandalone[evt_.nMuonCand] = muon->isStandAloneMuon();
     evt_.MuonCand_ispfmuon[evt_.nMuonCand] = muon->isPFMuon();
+    if(runOnMC_) evt_.MuonCand_mcmotherid[evt_.nMuonCand] = muon->simMotherPdgId();
+    if(runOnMC_) evt_.MuonCand_mcid[evt_.nMuonCand] = muon->simPdgId();
 
     TLorentzVector leptonptmp;
     leptonptmp.SetPtEtaPhiM( muon->pt(), muon->eta(), muon->phi(), muon->mass() );
@@ -871,6 +882,22 @@ GammaGammaLL::newTracksInfoRetrieval( int l1id, int l2id )
     evt_.nPairGamma++;
   }
 
+  if (runOnMC_) {
+    // We have accepted a primary muon
+    if (fabs(evt_.MuonCand_mcid[l1id]) == 13) {
+      nPrimaryAcc_++;
+    }
+    if (fabs(evt_.MuonCand_mcid[l2id]) == 13) {
+      nPrimaryAcc_++;
+    }
+    // We have accepted a non-signal muon
+    if (fabs(evt_.MuonCand_mcmotherid[l1id]) == 2000013) {
+      nSignalAcc_++;
+    }
+    if (fabs(evt_.MuonCand_mcmotherid[l2id]) == 2000013) {
+      nSignalAcc_++;
+    }
+  }
   evt_.nPair++;
   nCandidates_++;
 
@@ -891,6 +918,12 @@ void
 GammaGammaLL::endJob()
 {
   std::cout << "==> Number of candidates in the dataset : " << nCandidates_ << std::endl;
+  if(runOnMC_) {
+    std::cout << "==> Number of accepted leptons : " << nCandidates_ * 2<< std::endl;
+    std::cout << "==> Number of accepted primary leptons : " << nPrimaryAcc_ << std::endl;
+    std::cout << "==> Non-primary rate : " << (1.0 - (double) nPrimaryAcc_ / ((double) nCandidates_ * 2)) << std::endl;
+    std::cout << "==> Signal efficiency : " << ((double)nSignalAcc_ / ((double)nCandidates_ * 2)) << std::endl;
+  }
 }
 
 // ------------ method called when starting to processes a run  ------------

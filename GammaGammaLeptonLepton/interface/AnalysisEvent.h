@@ -101,7 +101,8 @@ namespace ggll
       unsigned int nGenPhotCand; int nGenPhotCandOutOfAccept;
       double GenPhotCand_pt[MAX_GENPHO], GenPhotCand_eta[MAX_GENPHO], GenPhotCand_phi[MAX_GENPHO], GenPhotCand_e[MAX_GENPHO];
       unsigned int nGenProtCand;
-      double GenProtCand_pt[MAX_GENPRO], GenProtCand_eta[MAX_GENPRO], GenProtCand_phi[MAX_GENPRO], GenProtCand_e[MAX_GENPRO];
+      double GenProtCand_pt[MAX_GENPRO], GenProtCand_eta[MAX_GENPRO], GenProtCand_phi[MAX_GENPRO], GenProtCand_e[MAX_GENPRO],
+              GenProtCand_vx[MAX_GENPRO], GenProtCand_vy[MAX_GENPRO], GenProtCand_vz[MAX_GENPRO];
       int GenProtCand_status[MAX_GENPRO];
 
       // Pileup reweighting quantities
@@ -113,7 +114,7 @@ namespace ggll
       double MuonCand_innerTrackPt[MAX_LL], MuonCand_innerTrackEta[MAX_LL], MuonCand_innerTrackPhi[MAX_LL];
       double MuonCand_innerTrackVtxz[MAX_LL];
       double MuonCand_vtxx[MAX_LL], MuonCand_vtxy[MAX_LL], MuonCand_vtxz[MAX_LL];
-      int MuonCand_charge[MAX_LL];
+      int MuonCand_charge[MAX_LL], MuonCand_mcmotherid[MAX_LL], MuonCand_mcid[MAX_LL];
       double MuonCand_dxy[MAX_LL];
       int MuonCand_nstatseg[MAX_LL], MuonCand_npxlhits[MAX_LL], MuonCand_ntrklayers[MAX_LL];
       int MuonCandTrack_nmuchits[MAX_LL];
@@ -231,7 +232,8 @@ namespace ggll
         }
         nGenProtCand = 0;
         for ( unsigned int i = 0; i < MAX_GENPRO; ++i ) {
-          GenProtCand_pt[i] = GenProtCand_eta[i] = GenProtCand_phi[i] = GenProtCand_e[i] = -999.;
+          GenProtCand_pt[i] = GenProtCand_eta[i] = GenProtCand_phi[i] = GenProtCand_e[i];
+          GenProtCand_vx[i] = GenProtCand_vy[i] = GenProtCand_vz[i] -999.;
           GenProtCand_status[i] = -1;
         }
         nGenRMuonCand = nGenREleCand = nGenChi10Cand = 0;
@@ -248,6 +250,8 @@ namespace ggll
           MuonCand_innerTrackVtxz[i] = -999.;
           MuonCand_vtxx[i] = MuonCand_vtxy[i] = MuonCand_vtxz[i] = -999.;
           MuonCand_charge[i] = 0;
+          MuonCand_mcmotherid[i] = -999.;
+          MuonCand_mcid[i] = -999.;
           MuonCand_dxy[i] = -999.;
           MuonCand_nstatseg[i] = MuonCand_npxlhits[i] = MuonCand_ntrklayers[i] = -999;
           MuonCandTrack_nmuchits[i] = -999;
@@ -373,6 +377,8 @@ namespace ggll
           tree->Branch( "MuonCand_phi", MuonCand_phi, "MuonCand_phi[nMuonCand]/D" );
           tree->Branch( "MuonCand_e", MuonCand_e, "MuonCand_e[nMuonCand]/D" );
           tree->Branch( "MuonCand_charge", MuonCand_charge, "MuonCand_charge[nMuonCand]/I" );
+          tree->Branch( "MuonCand_mcmotherid", MuonCand_mcmotherid, "MuonCand_mcmotherid[nMuonCand]/I" );
+          tree->Branch( "MuonCand_mcid", MuonCand_mcid, "MuonCand_mcid[nMuonCand]/I" );
           tree->Branch( "MuonCand_vtxx", MuonCand_vtxx, "MuonCand_vtxx[nMuonCand]/D" );
           tree->Branch( "MuonCand_vtxy", MuonCand_vtxy, "MuonCand_vtxy[nMuonCand]/D" );
           tree->Branch( "MuonCand_vtxz", MuonCand_vtxz, "MuonCand_vtxz[nMuonCand]/D" );
@@ -471,6 +477,9 @@ namespace ggll
           tree->Branch( "GenProtCand_phi", GenProtCand_phi, "GenProtCand_phi[nGenProtCand]/D" );
           tree->Branch( "GenProtCand_e", GenProtCand_e, "GenProtCand_e[nGenProtCand]/D" );
           tree->Branch( "GenProtCand_status", GenProtCand_status, "GenProtCand_status[nGenProtCand]/I" );
+          tree->Branch( "GenProtCand_vx", GenProtCand_vx, "GenProtCand_vx[nGenProtCand]/D" );
+          tree->Branch( "GenProtCand_vy", GenProtCand_vy, "GenProtCand_vy[nGenProtCand]/D" );
+          tree->Branch( "GenProtCand_vz", GenProtCand_vz, "GenProtCand_vz[nGenProtCand]/D" );
         }
 
         // Primary vertices' information
