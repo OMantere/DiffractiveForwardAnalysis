@@ -6,25 +6,26 @@
 
 
 double lhc_lumi = 50;
-double elastic_crossx = 20.0781 * 1000;
-double ww_crossx = 0.7583;
+double elastic_crossx = 20.0781 * 1000 * 77202 / 96900;
+double ww_crossx = 0.7583 * 44500 / 49600;
 double dy_crossx = 1141 * 1000;
 double cms_dy_crossx1 = 1975 * 1000;
 double cms_dy_crossx2 = 19.32 * 1000;
 double cms_dy_crossx3 = 2.731 * 1000;
 double lm1mul_crossx = 0.055;
-double lm1mur_crossx = 0.263;
+double lm1mur_crossx = 0.263 * 47196 / 49600 * 0.20973;
 double lm1mur_x10_80_crossx_old = 1.7297;
 double lm1mur_x10_80_crossx = 0.2472;
 double lm1mur_lm6_crossx = 0.07169;
 double lm1mur_lm6_x10_130_crossx = 0.07316;
 double ppwz_crossx = 4.429 * 1.109 * 1000;
-double ppww_crossx = (118.7 - 3.974) * pow(0.10862, 2) * 9 * 1000;
+double ppww_crossx = (118.7 - 3.974) * pow(0.10862, 2) * 1000;
 double dyjets_crossx = 1921.8 * 1000 * 801439.0 / 4999851.0;
 double ttbar_crossx = 831.76 * pow(0.10862, 2) * 1000 * 1430956 / 5500000.0;
 double ppzz_crossx = 0.564 * 1000;
 double signal_crossx = lm1mur_crossx;
-double totem_ctpps_fake_rate = 9.28 / 1000;
+double ctpps_timing_reduction = 1.0 / 95.3901;
+double ctpps_signal_loss = 0.157299;
 
 
 clock_t start = clock(), diff;
@@ -122,7 +123,7 @@ public:
 
     double getFactor() {
         if(background)
-            return factor * totem_ctpps_fake_rate;
+            return factor * ctpps_timing_reduction;
         else
             return factor;
     }
@@ -167,8 +168,9 @@ Sample *dy3 = new Sample("computed_dy3.root", "Drell-Yan -> #mu^{+}#mu^{-}", "DY
 Sample *wz = new Sample("computed_ppwz.root", "pp -> WZ", "WZ", ppwz_crossx);
 Sample *zz = new Sample("computed_ppzz.root", "pp -> ZZ", "ZZ", ppzz_crossx);
 Sample *ww = new Sample("computed_ppww.root", "pp -> W^{+}W^{-}", "W^{+}W^{-}", ppww_crossx);
-Sample *ttbar = new Sample("computed_ttbar.root", "pp -> t#bar{t}", "t#bar{t}", ttbar_crossx);
+Sample *ttbar = new Sample("computed_ttbar_big.root", "pp -> t#bar{t}", "t#bar{t}", ttbar_crossx);
 Sample *dyjets = new Sample("computed_dyjets_big.root", "DY+jets", dyjets_crossx);
+Sample *wwspin = new Sample("computed_wwspin.root", "#gamma#gamma -> W^{+}W^{-}", "#gamma#gamma -> W^{+}W^{-}", ww_crossx);
 
 vector <VariableCut> l1_cuts = {
         VariableCut("Pt", 2, 10000, 0, 50, false),
@@ -428,11 +430,11 @@ public:
             }
             cout << "Sample " + files[i] << " reduced by: " << to_string((1.0 - pass_frac[i][n_vars - 1]) * 100);
             if(i == 0) {
-                expected_events.push_back(lhc_lumi * pass_frac[i][n_vars - 1] * samples[i]->crossx);
+                expected_events.push_back(lhc_lumi * pass_frac[i][n_vars - 1] * samples[i]->crossx * (1.0 - ctpps_signal_loss));
                 signal_event_sum += expected_events.back();
             }
             else {
-                expected_events.push_back(lhc_lumi * pass_frac[i][n_vars - 1] * samples[i]->crossx * totem_ctpps_fake_rate);
+                expected_events.push_back(lhc_lumi * pass_frac[i][n_vars - 1] * samples[i]->crossx * ctpps_timing_reduction);
                 bg_event_sum += expected_events.back();
             }
             cout << " %, total expected events: " << to_str(expected_events.back(), 2) << endl;
@@ -508,7 +510,7 @@ Analysis *both_ww_analysis = new Analysis({slr2, ww, aaww}, {4.7 * 1e3 / 5, 1, 4
 //Sample computed_ppzz.root reduced by: 0.000000 %, total expected events: 2.8e+04
 //Sample computed_ttbar.root reduced by: 0.000000 %, total expected events: 4.4e+06
 //Sample computed_dyjets.root reduced by: 0.000000 %, total expected events: 2.9e+08
-vector<Sample *> all_samples = {slr2full, ttbar, dyjets};
+vector<Sample *> all_samples = {slr2full, ttbar, dyjets, elastic, wwspin};
 vector<double> all_scales = {
         1.0/20.0,
 //    13.0/38.0,
@@ -576,15 +578,11 @@ Analysis *all_analysis_kristian = new Analysis(
         all_samples,
         {},
         {
-            VariableCut("closest_extra", 0.01, DBL_MAX, 0, 0.2, false),
-            VariableCut("pt1", pt_cut2, 200, 0, 150, false),
             VariableCut("Wlep", 0, 75, 0, 150, false),
             VariableCut("pair_dphi", -2.5, 2.5, -3.14, 3.14, false),
-//            VariableCut("closest_extra", 0.01, DBL_MAX, 0, 0.2),
-            VariableCut("pt2", pt_cut2, 200, 0, 150, false),
+            VariableCut("pt1", pt_cut2, DBL_MAX, 0, 150, false),
+            VariableCut("pt2", pt_cut2, DBL_MAX, 0, 150, false),
             VariableCut("extratracks2", -DBL_MAX, 3, 0, 100, false),
-//            VariableCut("xiP1", 0.02, 0.15, 0, 1),
-//            VariableCut("xiP2", 0.02, 0.15, 0, 1),
             VariableCut("xiP1", 0.02, 0.15, 0,1),
             VariableCut("xiP2", 0.02, 0.15, 0,1)
         },

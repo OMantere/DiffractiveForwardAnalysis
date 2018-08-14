@@ -48,7 +48,7 @@ double smeared(double q) {
 
 string type = "Muon";
 char delimiter = ',';
-int max_events = 1000000;
+int max_events = 5000000;
 int max_protons = 100000;
 default_random_engine generator;
 uniform_int_distribution<int> proton_random;
@@ -64,8 +64,10 @@ vector <std::pair<string, int>> keypairs;
 vector<char *> keys;
 vector <TLorentzVector> l_protons(max_protons);
 vector <TLorentzVector> r_protons(max_protons);
+int total_acc = 0;
+int total_pairs = 0;
 double low_xi_acc = 6500 * (1 - 0.15);
-double high_xi_acc = 6500 * (1 - 0.03);
+double high_xi_acc = 6500 * (1 - 0.02);
 
 
 void read_protons(const char *proton_filename = "acc_events.csv") {
@@ -89,7 +91,7 @@ void read_protons(const char *proton_filename = "acc_events.csv") {
                 r_protons[i].SetPtEtaPhiE(pt, eta, phi, e);
                 right_proton = true;
             }
-        } else if(line == "event") {
+        } else if (line == "event") {
             left_proton = right_proton = false;
             i++;
         }
@@ -100,7 +102,7 @@ void read_protons(const char *proton_filename = "acc_events.csv") {
 }
 
 
-pair<TLorentzVector, TLorentzVector> get_diffraction_protons() {
+pair <TLorentzVector, TLorentzVector> get_diffraction_protons() {
     int i = proton_random(generator);
     return make_pair(l_protons[i], r_protons[i]);
 }
@@ -202,14 +204,15 @@ void reader(const char *c_name = "elastic", const char *out_name = 0) {
 //  tree->Branch("neutralino_mass",&neutralino_mass);
 
     set <string> bgs = {"ww", "elastic", "dy", "dy_10k", "dy_1M", "dy2", "dy3", "ttbar", "ppww", "ppwz",
-                        "ppzz", "dyjets"};
-    set <string> gg_samples = {"ww", "elastic", "slr2"};
+                        "ppzz", "dyjets", "dyjets_big", "ttbar_big", "wwspin"};
+    set <string> gg_samples = {"ww", "elastic", "slr2", "lm1", "lm1full", "lm6", "lm6full", "wwspin"};
     set <string> pp_bgs;
     set_difference(bgs.begin(), bgs.end(), gg_samples.begin(), gg_samples.end(), inserter(pp_bgs, pp_bgs.end()));
 
     cout << "Entries: " << N << endl;
     start_time();
-    read_protons();
+    if (pp_bgs.find(name) != pp_bgs.end())
+        read_protons();
     for (unsigned long long i = 0; i < tree->GetEntriesFast(); ++i) {
         tree->GetEntry(i);
         //cout << ">>> event " << i << endl;
@@ -222,27 +225,32 @@ void reader(const char *c_name = "elastic", const char *out_name = 0) {
         TLorentzVector P2(0, 0, -sqrt(pow(6500, 2) - pow(0.938, 2)), 6500);
         TLorentzVector p1, p2; // p1, p2: measured protons
         TLorentzVector com(0, 0, 0, 13.e3);
-        p1.SetPtEtaPhiE(evt.GenProtCand_pt[0], evt.GenProtCand_eta[0], evt.GenProtCand_phi[0], evt.GenProtCand_e[0]);
-        p2.SetPtEtaPhiE(evt.GenProtCand_pt[1], evt.GenProtCand_eta[1], evt.GenProtCand_phi[1], evt.GenProtCand_e[1]);
         if (pp_bgs.find(name) != pp_bgs.end()) {
-            pair<TLorentzVector, TLorentzVector> protons = get_diffraction_protons();
+            pair <TLorentzVector, TLorentzVector> protons = get_diffraction_protons();
             p2 = protons.first;
             p1 = protons.second;
+        } else {
+            if (evt.nGenProtCand < 2) {
+                cout << "Throwing event away because only " << evt.nGenProtCand << " protons" << endl;
+                continue;
+            }
+            p1.SetPtEtaPhiE(evt.GenProtCand_pt[0], evt.GenProtCand_eta[0], evt.GenProtCand_phi[0],
+                            evt.GenProtCand_e[0]);
+            p2.SetPtEtaPhiE(evt.GenProtCand_pt[1], evt.GenProtCand_eta[1], evt.GenProtCand_phi[1],
+                            evt.GenProtCand_e[1]);
         }
 
 
         for (unsigned int j = 0; j < evt.nPair; ++j) {
 
-            // Lets do acceptance cuts
-//      double pt_acc = 7;
-//      double eta_acc = 2.5;
-//      if(evt.MuonCand_eta[l1] > eta_acc || evt.MuonCand_eta[l2] > eta_acc || evt.MuonCand_pt[l1] < pt_acc || evt.MuonCand_pt[l2] < pt_acc)
-//        continue;
-
-            //if ( evt.Pair_extratracks0p5mm[j] != 0 ) continue;
-            if (fabs(evt.KalmanVertexCand_z[j]) > 15.) continue;
-            //if ( 1.-fabs( evt.Pair_dphi[j] )/M_PI > 0.009 ) continue;
-            //if ( evt.Pair_mass[j] < 110. ) continue;
+            // KalmanVertex Z and double proton tag Xi acceptance
+            total_pairs++;
+            if (name != "elastic") {
+                if (fabs(evt.KalmanVertexCand_z[j]) > 15.) continue;
+                if (!(p1.Pz() < high_xi_acc && p1.Pz() > low_xi_acc && -p2.Pz() < high_xi_acc && -p2.Pz() > low_xi_acc))
+                    continue;
+            }
+            total_acc++;
 
             const unsigned int l1 = evt.Pair_lepton1[j], l2 = evt.Pair_lepton2[j];
             double El1, El2;
@@ -376,8 +384,8 @@ void reader(const char *c_name = "elastic", const char *out_name = 0) {
             store_var("Pt", lep_pair.Pt());
             store_var("Mt", sqrt(lep_pair.E() * lep_pair.E() - lep_pair.Pz() * lep_pair.Pz()));
             store_var("mt2_100", mt2);
-            store_var("HTlep", HTlep);
-            store_var("EtmissOverHTlep", Etmiss / HTlep);
+//            store_var("HTlep", HTlep);
+//            store_var("EtmissOverHTlep", Etmiss / HTlep);
 //            store_var("atlasCut1", max((double) 3, 15 - 2 * (mt2 - chi10_mass)));
             store_var("Etmiss", Etmiss);
             double Wslep = slep_pair.M();
@@ -448,6 +456,10 @@ void reader(const char *c_name = "elastic", const char *out_name = 0) {
         tree2->Fill();
     }
     end_time();
+
+    cout << "==> " << total_pairs << " lepton pairs processed" << endl;
+    cout << "==> " << total_acc << " lepton pairs accepted" << endl;
+    cout << "==> Acceptance: " << (double) total_acc / (double) total_pairs * 100 << " %" << endl;
 
 //  newtree1->Write();
     tree2->Write();

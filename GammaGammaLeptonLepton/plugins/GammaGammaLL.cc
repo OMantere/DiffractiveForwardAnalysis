@@ -413,8 +413,13 @@ GammaGammaLL::fetchMuons( const edm::Event& iEvent )
   for ( unsigned int i = 0; i < muonColl->size() && evt_.nMuonCand < ggll::AnalysisEvent::MAX_MUONS; ++i ) {
     const edm::Ptr<pat::Muon> muon = muonColl->ptrAt( i);
 
-    if(muon->pt() < minPtMC_ || (minEtaMC_ != -1. && fabs(muon->eta() ) > minEtaMC_))  // PT and eta cuts for PAT muons too
+    cout << muon->simPdgId() << " "  << muon->simMotherPdgId() << " ";
+
+    if(muon->pt() < minPtMC_ || (minEtaMC_ != -1. && fabs(muon->eta() ) > minEtaMC_)) { // PT and eta cuts for PAT muons too
+      cout << endl;
       continue;
+    }
+    cout << "accepted" << endl;
 
     evt_.MuonCand_pt[evt_.nMuonCand] = muon->pt();
     evt_.MuonCand_eta[evt_.nMuonCand] = muon->eta();
