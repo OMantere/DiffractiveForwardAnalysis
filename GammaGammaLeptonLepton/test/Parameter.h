@@ -18,12 +18,15 @@ class Parameter{
         bool cut(double val = 0);
         int printCuts();
         string pNam;
-        void setRange(double llow = 0, double hhigh= 0);
+        void setRange(double llow = 0, double hhigh= 0, bool incl = true);
         void changeAddr(double *addr=NULL);
         double low;
         double high;
+        void setnPoints(int points = 0);
     private:
+        int nPoints;
         int cutPoints;
+        bool inc;
 };
 
 

@@ -18,27 +18,30 @@ using namespace std;
 std::string line;
 
 double d1,d2,d3,d4,d5;
-int Colorlist[] = {600, 632, 416, 880, 432, 860, 900};
+int nPads = 0;
+//int Colorlist[] = {600, 632, 416, 880, 432, 860, 900};
+vector<int> Colorlist;
 std::string datafold = "/afs/cern.ch/work/k/karjas/private/dataFold/";
 double plm, pslm, rapiditysl, rapidityl1l2;
 
 bool plot1 = true;
 bool plot2 = false;
 bool plot3 = false;
-// SELECT PARAMETERS HERE!
+bool plot4 = false;
 
-// Currently supported options
-// Wgg: Invariant mass of the photons
-// mass: Invariant mass of the lepton pair
-// ptTot: Sum of the transverse momenta of the protons
-// ptMiss: pt of neutralinos (pt_photons - pt_leptons)
-// ptl1: pt of lepton 1
-// ptl2: pt of lepton 2
-// MET_noProt: pt of leptons
-vector<std::string> paramList = {"trackiso", "ecaliso","nPrimTracks","Wlep","ptl1", "ptl2", "deltaR","ptl1l2","ptTot","eta1", "eta2","xi11", "xi21", "invdetA","xi3", "ptMiss", "pair_mass","xim", "xip"};
+bool logScale = true; 
+int legendPad = 0;
 
-string param1="nPrimTracks";
-string param2="trackiso";
+// SELECT PARAMETERS HERE
+
+vector<std::string> paramList = {"ptl1", "pair_aco", "mt2", "ptl1l2", "Wlep","nPrimTracks","trackiso", "ptl2", "ecaliso","pair_dphi","deltaR","deltaEta", "ptTot","eta1", "eta2","xi11", "xi21", "invdetA","xi3", "ptMiss", "pair_mass","xim", "xip"};
+vector<int> lowbounds = {0,0,0,0,0,0};
+vector<int> upbounds = {220, 1, 100, 200, 400, 100};
+vector<string> units = {"[GeV]","" ,"[GeV]","[GeV]","[GeV]",""};
+
+
+string param1="mt2";
+string param2="ptl1l2";
 
 TTree *tree;
 
@@ -68,11 +71,11 @@ vector<string> fileloader(){
 
 }
 
-void setParamRange(Parameter *pList[], string name, double low, double high){
+void setParamRange(Parameter *pList[], string name, double low, double high, bool incl){
     for(int i = 0; i < paramList.size(); i++){
         if(pList[i]->pNam == name){
             //cout << name << endl;
-            pList[i]->setRange(low,high);
+            pList[i]->setRange(low,high, incl);
             return;
         }
     }
@@ -86,24 +89,22 @@ void setParamRange(Parameter *pList[], string name, double low, double high){
 ///////////////////////////////////
 
 void setRanges(Parameter *pList[]){
+//    setParamRange(pList, "trackiso", -1, 0.1);
 //    setParamRange(pList, "eta1", -0.6, 3);
-//    setParamRange(pList, "ptl1", 10, 2000);
-//    setParamRange(pList, "ptl2", 10, 2000);
+//    setParamRange(pList, "ptl2", 10, 60, true);
+    setParamRange(pList, "Wlep", 10,76, true);
+    setParamRange(pList, "nPrimTracks",2, 2, true);
+    setParamRange(pList, "pair_aco", 0.3, 1, true);
+    setParamRange(pList, "ptl1l2", 27, 55, true);
+    setParamRange(pList, "ptl1", 10, 1000, true);
+    setParamRange(pList, "mt2", 10, 40, true);
+//    setParamRange(pList, "trackiso", 0, 0.1);
 //    setParamRange(pList, "xip", 0.03, 0.15);
 //    setParamRange(pList, "xim", 0.03, 0.15);
-//    setParamRange(pList, "ptl1l2", 40, 100);
 //    setParamRange(pList, "deltaR",0, 3);
-//    setParamRange(pList, "Wgg", 0,2000);
-//    setParamRange(pList, "nPrimTracks", -1, 3);
-
-//    setParamRange(pList, "trackiso", 0, 0.1);
-
-//    setParamRange(pList, "invdetA", -1,1);
-//    setParamRange(pList, "mtaus2", 2000, 22500);
     
-//    setParamRange(pList, "xi21", -5e-15, 5e-15);
-//    setParamRange(pList, "xi3", -100,100);
-//    setParamRange(pList, "pair_mass", 0, 70);
+//    setParamRange(pList, "pair_dphi", -2,2);
+    
 }
 
 char *str2char (string str){ //Helper function for turning strings into char *:s
@@ -114,16 +115,26 @@ char *str2char (string str){ //Helper function for turning strings into char *:s
     return out;
 }
 
-void rescaleY(TH1D *h, double scale){
-    if(h->GetMaximum()<scale){
-        h->SetMaximum(scale*1.1);
+void rescaleY(TH1D *h, TH1D *h2, int log){
+ 
+    double scale = h2->GetMaximum();
+
+    double ss = 1.1;
+    if(log == 1) ss = 5;
+
+    if(h->GetMaximum()<=scale){
+        h->SetMaximum(scale*ss);
     }
+    
+
+    h2->SetMinimum(0.1);
+
     return;
 }
 
 bool cuts(Parameter *pList[]){
-//cout << *vals[4] <<endl;
-    
+   
+
     bool pass = true;
 
     for(int i=0; i<paramList.size(); i++){
@@ -132,27 +143,35 @@ bool cuts(Parameter *pList[]){
             pass = false;
         }
     }
-
     return pass;
-
-
 };
-void updateHisto(TH1D **h,int id, char *name,double norm){
+
+TH1D *updateHisto(TH1D **h,int id, char *name,double norm, int log){
     int color = Colorlist[id];
 
     h[id]->Scale(norm*50);
-    
-    rescaleY(h[0], h[id]->GetMaximum()); 
-    
+    double scale = 1.1;
+
+    rescaleY(h[0], h[id], log); 
+    h[id]->SetStats(kFALSE);
     auto ax0 = h[0]->GetXaxis();
     auto axis = h[id]->GetXaxis();
     axis->SetLimits(ax0->GetXmin(),ax0->GetXmax());
-    h[id]->SetName(name);
-    h[id]->Draw("HIST SAME");
+    //h[id]->SetName(name);
+    //h[id]->SetTitle(name);
+   // h[id]->Draw("HIST SAME");
     //h[id]->SetFillColor(color);
-    h[id]->SetLineColor(color);
+    //h[id]->SetLineColor(1);
    // h[id]->SetXTitle("[GeV]");
-    return; 
+    return h[id]; 
+}
+void setHistoBins(TH1D **h, int N, double min, double max){
+
+    for(int id = 0; id < N; id++){
+        auto axis = h[id]->GetXaxis();
+        axis->SetLimits(min,max); 
+    }
+    return;
 }
 
 ///////////////////////////////////
@@ -171,7 +190,6 @@ void scanParameter(TCanvas *c, TH1D* h1[], TH1D* h2[],
     
     char * fold1 = str2char(foldstr1);
     char * fold2 = str2char(foldstr2);
-    //cout << name << endl;
     TFile File1(fold1);
     TTree *tree1 = (TTree *) File1.Get("computed");
 
@@ -187,15 +205,14 @@ void scanParameter(TCanvas *c, TH1D* h1[], TH1D* h2[],
 
     if(std::find(paramList.begin(), paramList.end(), Param1) != paramList.end()){
         tree1->SetBranchAddress(Param1, &d1);
-        tree2->SetBranchAddress(Param1, &d1);
+        tree2->SetBranchAddress(Param1, &d2);
         pp1 = new Parameter(Param1, &d1);
     }
     if(std::find(paramList.begin(), paramList.end(), Paramcut) != paramList.end()){
-        tree1->SetBranchAddress(Paramcut, &d2);
-        tree2->SetBranchAddress(Paramcut, &d2);
+        tree1->SetBranchAddress(Paramcut, &d3);
+        tree2->SetBranchAddress(Paramcut, &d4);
         pp2 = new Parameter(Paramcut, &d2);
     }
-
 
     int N1 = tree1->GetEntriesFast();
     int N2 = tree2->GetEntriesFast();
@@ -203,19 +220,25 @@ void scanParameter(TCanvas *c, TH1D* h1[], TH1D* h2[],
     vector<std::pair<double, double>> points1;
     vector<std::pair<double, double>> points2;
     
-//    cout << N1 << endl;
+    double minX1, minX2, maxX1, maxX2;
+
+    minX1 = minX2 = INFINITY;
+    maxX1 = maxX2 = -minX1;
 
     for(int j = 0; j<N1; j++){
         tree1->GetEntry(j);
-        std::pair<double, double> point1 = std::make_pair(d1,d2);
+        std::pair<double, double> point1 = std::make_pair(d1,d3);
         points1.push_back(point1);
-        cout << d2<< endl;
+        if(d1 < minX1) minX1 = d1;
+        if(d1 > maxX1) maxX1 = d1;
     }
 
-    for(int j = 0; j<N2; j++){
-        tree2->GetEntry(j);
-        std::pair<double, double> point2 = std::make_pair(d1,d2);
+    for(int j2 = 0; j2<N2; j2++){
+        tree2->GetEntry(j2);
+        std::pair<double, double> point2 = std::make_pair(d2,d4);
         points2.push_back(point2);
+        if(d2 < minX2) minX2 = d2;
+        if(d2 > maxX2) maxX2 = d2;
     }
     
     vector<std::pair<double, double>> sortd1  = points1;
@@ -223,11 +246,15 @@ void scanParameter(TCanvas *c, TH1D* h1[], TH1D* h2[],
     
     vector<std::pair<double, double>> sortd2  = points2;
     std::sort (sortd2.begin(), sortd2.end(), mysort);
+    cout << sortd1[0].first<<", "<<sortd1[N1-1].first<<endl;
 
-    //cout << sortd[0].second<<", " << sortd[N].second << endl;
-    //cout << "min: " << mind2 << ", max: " << maxd2 << endl;
 
-    int nSteps = 100;
+    setHistoBins(h1, 5, minX1, maxX1);
+    setHistoBins(h2, 5, minX2, maxX2);
+    //setHistoBins(h1, 5, 0,0.1);
+    //setHistoBins(h2, 5, 0,0.1);    
+    
+    int nSteps = 31;
 
     int step = N1/(nSteps + 1);
     int cutoff = 0;
@@ -244,6 +271,8 @@ void scanParameter(TCanvas *c, TH1D* h1[], TH1D* h2[],
 
 
         int cutoff2 = 0;
+        //cout << "Cutoffval" << sortd2[cutoff2] << endl;
+
         
         while(sortd2[cutoff2].second < cutoffVal){
             cutoff2 += 1;
@@ -260,16 +289,17 @@ void scanParameter(TCanvas *c, TH1D* h1[], TH1D* h2[],
             }
             
             c->cd(1);
-            updateHisto(h1, idx, name1, 1);
+            updateHisto(h1, idx, name1, 1, c->cd(1)->GetLogy());
 
 
             c->cd(3);
-            updateHisto(h2, idx, name2, 1);
+            updateHisto(h2, idx, name2, 1, c->cd(3)->GetLogy());
             //h2[idx]->Draw("SAME");
             string entry = param2 + ">" + std::to_string(sortd1[cutoff].second);
             legend->AddEntry(h1[idx],str2char(entry),"l");
             idx += 1;
         }
+        cout<<(N1-cutoff)<<", "<<(N2-cutoff2)<<endl;
         SB[k] = (1.0*(N1-cutoff)/(N2-cutoff2)*Norm);
 
         
@@ -301,15 +331,15 @@ void draw_2D_histos(TCanvas *c, TH2D *H1,
     TFile File(fold);
     TTree *tree = (TTree *) File.Get("computed");
 
-    tree->SetBranchAddress("pair_mass", &plm);
-    tree->SetBranchAddress("slMass", &pslm);
-    tree->SetBranchAddress("rapiditysl", &rapiditysl);
-    tree->SetBranchAddress("rapidityl1l2", &rapidityl1l2);
+    tree->SetBranchAddress("ptl1", &plm);
+    tree->SetBranchAddress("ptl2", &pslm);
+    tree->SetBranchAddress("nPrimTracks", &rapiditysl);
+    tree->SetBranchAddress("trackiso", &rapidityl1l2);
     int N = tree->GetEntriesFast();
 
     for(int j = 0; j<N; j++){
         tree->GetEntry(j);
-        H1->Fill(plm, pslm);
+//H1->Fill(plm, pslm);
         H2->Fill(rapiditysl, rapidityl1l2);
     }
 
@@ -317,19 +347,19 @@ void draw_2D_histos(TCanvas *c, TH2D *H1,
         
         int color = Colorlist[id];
         //cout << color << endl;
-
+/*
         c->cd(id+1); 
         H1->Draw("COLZ"); 
         H1->SetTitle(str2char(data_name));
         H1->SetYTitle("slepton pair mass");
         H1->SetXTitle("lepton pair mass");
-
-        c->cd(id+4);
+*/
+        c->cd(id+1);
 
         H2->Draw("COLZ");
         H2->SetTitle(str2char(data_name));
-        H2->SetYTitle("slepton rapidity");
-        H2->SetXTitle("lepton rapidity");
+        H2->SetYTitle("nPrimTracks");
+        H2->SetXTitle("trackiso");
     }
 
     c->Update();
@@ -343,7 +373,20 @@ TCanvas *draw_histos(TCanvas *c,
         TH1D *h5[], string foldstr,
         string data_name, int id, double xsec)
 */
-TCanvas *draw_histos(TCanvas *c,
+
+int countPads(TCanvas *c){
+
+    int counter = 0;
+    while(c->GetPad(counter)){
+        counter += 1;
+        c->cd(counter);
+    }
+
+    return counter - 1;
+
+}
+
+Canvas *draw_histos(Canvas *c,
         TH1D **histolist[] , Parameter *pList[],  string foldstr,
         string data_name, int id, double norm)
 {
@@ -356,6 +399,10 @@ TCanvas *draw_histos(TCanvas *c,
     TFile File(fold);
     TTree *tree = (TTree *) File.Get("computed");
 
+    int nPads = countPads(c);
+
+    if(nPads == 1) legendPad = 0;
+
     
     double *p[NParam]; // Pointer array 
     
@@ -364,44 +411,61 @@ TCanvas *draw_histos(TCanvas *c,
         p[x]=&pp[x];
     }
     
+    int N = tree->GetEntriesFast();
+
     for(int hID=0; hID<NParam; hID++){
         char *param = str2char(paramList[hID]);
         if(std::find(paramList.begin(), paramList.end(), param) != paramList.end()){
             tree->SetBranchAddress(param, p[hID]);
             pList[hID]->changeAddr(p[hID]); 
+            pList[hID]->setnPoints(N);
         }
     }
  
 
-    int N = tree->GetEntriesFast();
+    Parameter *pL1[2]={pList[0],pList[1]};
+    Parameter *pL2[2]={pList[2],pList[3]};
+    Parameter *pL3[2]={pList[4],pList[5]};
+
+    int pass1 = 0;
+    int pass2 = 0;
+    int pass3 = 0;
+
     int pass = 0;
-    cout << N << endl;
     for(int j=0;j<N;j++){
         // Fill the historgams
         tree->GetEntry(j);
-        if(cuts(pList)){
+        /*if(cuts(pList)){
             pass += 1;
-            for(int k = 0; k < 5; k++){
+            
+            for(int k = 0; k < nPads-legendPad; k++){
+                if(id>0){
+                    auto ax0 = histolist[0][id]->GetXaxis();
+                    histolist[k][id]->GetXaxis()->SetLimits(ax0->GetXmin(), ax0->GetXmax());
+                }
                 histolist[k][id]->Fill(*p[k]);
             
             }
-        }
+        }*/
     }
  
     cout << "In " << data_name << " " << N - pass<<" out of " << N  << " (" << (N*1.-pass*1.)/N*100. << "%) events were cut" << endl;
 
 
-    //double norm = 1; //xsec/10000; // N is incorrect, the correct value needs to be included in the filelist.txt (the number of generated events from madgraph)
-    for(int j=0;j<5;j++){
-        c->cd(j+1)->SetLogy();
-        updateHisto(histolist[j],id,name,norm);
+    for(int j=0;j<nPads - legendPad;j++){
+        
+        if(logScale)c->cd(j+1)->SetLogy();
+        else c->cd(j+1);
+
+        histolist[j][id]->GetYaxis()->SetTitle(str2char(""));
+        
     }
     
     c->Update();
     return c;
 }
-
 void saveJSON(string runName = "",vector<string> datasets={""},
+
         Parameter *pList[]={}, vector<vector<int>> cutPoints={}){
     string out="{\n";
     
@@ -419,8 +483,9 @@ void saveJSON(string runName = "",vector<string> datasets={""},
     
     out += "\"cuts\": [\n";
     for(ii=0; ii<paramList.size();ii++){
-
-        out+="\t{ \"name\": \""+pList[ii]->pNam+"\", \"range\": [\""+std::to_string(pList[ii]->low)+"\",\""+std::to_string(pList[ii]->high)+"\"]},\n";    
+        if(pList[ii]->low!=-INFINITY){
+        out+="\t{ \"name\": \""+pList[ii]->pNam+"\", \"range\": [\""+std::to_string(pList[ii]->low)+"\",\""+std::to_string(pList[ii]->high)+"\"]},\n";
+        }
     }
 
     if(ii>0){
@@ -451,11 +516,38 @@ void saveJSON(string runName = "",vector<string> datasets={""},
 
     out += "}\n";
     std::ofstream outfile;
-    outfile.open("logfile.txt");
-    //cout << out << endl;
+    outfile.open("logfile.txt",std::ios_base::app);
     outfile << out;
 
     return;
+}
+
+int setColor(string str){
+    int out = 1;
+
+    int L = str.size();
+    std::size_t npos = str.npos;
+    std::size_t foundDY = str.find("DY");
+    if(foundDY!=npos){
+        out = 800 -5; //800 = kOrange
+    }
+    std::size_t foundLM1 = str.find("LM1");
+    if(foundLM1!=npos){
+        out = 820-5; //820 = kSpring
+    }
+    std::size_t foundttbar = str.find("ttbar");
+    if(foundttbar!=npos){
+        out = 860-2; //860 = kAzure
+    }
+    std::size_t foundWW = str.find("WW");
+    if(foundWW!=npos){
+        out = 600 -2;
+    }
+    std::size_t foundelastic = str.find("elastic");
+    if(foundelastic!=npos){
+        out = 616-2;
+    }
+    return out;
 }
 
 //////
@@ -471,8 +563,7 @@ void combinedHisto(){
     int N = flist.size();
     int NParam = paramList.size(); 
 
-
-    TCanvas *c;
+    Canvas *c;
     TCanvas *c2;
     TCanvas *c3;
     
@@ -486,25 +577,35 @@ void combinedHisto(){
     TH2D *H1[N];
     TH2D *H2[N];
 
-    TH1D *hscans[2][5];
-    TH2D *hscan2d[2];
+    TH1D *hscans1[5];
+    TH1D *hscans2[5];
+
 
     Parameter *pList[NParam];
     TLegend* legend;
 
     if(plot1){
-        c = new TCanvas("Testi");
-        legend = new TLegend (0.2, 0.2, 0.8, 0.8);
-        c->Divide(3,2);
+        c = new Canvas("Testi");
+        if(!plot4) c->Divide(3,2);
+        else c->Divide(1,1);
+        c->SetLegendX1(0.62);
+        nPads = countPads(c);
+        //c->AddLegendEntry((TObject*)0, "L","");
+        //
     }
+
+    if(nPads == 1) legendPad = 0;
+
     if(plot2){
         c2 = new TCanvas("2DHistos");
-        c2->Divide(3,2);
+        c2->Divide(2);
     }
     if(plot3){
+        cout << "How about here?"<<endl;
         c3 = new TCanvas("scanplots");
         c3->Divide(2,2);
-        legend = new TLegend (0.2, 0.2, 0.8, 0.8);
+
+// legend = new TLegend (0.2, 0.2, 0.8, 0.8);
     }
 
 
@@ -523,6 +624,19 @@ void combinedHisto(){
     }
     setRanges(pList);
     
+    bool bg = true;
+
+    int nPlots = nPads - legendPad;
+
+    THStack *stacks[nPlots];
+    TAxis *ax0;
+
+    for(int j = 0; j < nPlots; j++){
+
+        stacks[j] = new THStack(str2char(paramList[j]),"");
+        stacks[j]->SetMinimum(0.1);
+
+    }
 
     vector<vector<int>> cutPoints;
     //auto* legend = new TLegend(0.2,0.2,0.8,0.8);
@@ -540,6 +654,10 @@ void combinedHisto(){
                back_inserter(words));
        string name = words[0];
        names.push_back(name);
+
+       Colorlist.push_back(setColor(name));
+
+       if(Colorlist[i]==815) bg = false;
 
        double xsec;
        std::string::size_type sz;
@@ -562,38 +680,59 @@ void combinedHisto(){
        events.push_back(eventcount);
  
        double norm = xsec/eventcount * 40;
-       cout << norm << endl;
 
        char* name_ = str2char(name);
        if(plot1){
-           cout << "Durr" << endl;
-           histolist[0][i] = new TH1D(paramList[0].c_str(),paramList[0].c_str(),50,0,0);
-           histolist[1][i] = new TH1D(paramList[1].c_str(),paramList[1].c_str(),50,0,0);
-           histolist[2][i] = new TH1D(paramList[2].c_str(),paramList[2].c_str(),50,0,0);
-           histolist[3][i] = new TH1D(paramList[3].c_str(),paramList[3].c_str(),50,0,0);
-           histolist[4][i] = new TH1D(paramList[4].c_str(),paramList[4].c_str(),50,0,0);
-           cout << "Check" << endl;
+           for(int j = 0; j < nPads - legendPad; j++){
+               histolist[j][i] = new TH1D((paramList[j]+std::to_string(i)).c_str(),"",50,lowbounds[j],upbounds[j]);
+          }
+
            c = draw_histos(c,histolist, pList, out, name, i, norm);
-           legend->AddEntry(h1[i],name_);
+           for(int j = 0; j < nPads - legendPad; j++){
+               
+               if(bg){
+                   histolist[j][i]->SetFillColor(Colorlist[i]);
+                   stacks[j]->Add(updateHisto(histolist[j],i,name_,norm, c->cd(j+1)->GetLogy())); 
+                   c->cd(j+1);
+                   stacks[j]->Draw("HIST");
+                   //cout<<stacks[j]->GetXaxis()<<endl;
+                   stacks[j]->GetXaxis()->SetTitle(str2char(paramList[j]+" "+units[j]));
+               }else{ 
+                   histolist[j][i]->SetLineColor(Colorlist[i]);
+                   histolist[j][i]->SetLineWidth(2);
+                   c->Prettify(histolist[j][i]);
+                   if(i>0){
+                   //ax0[j] = stacks[j]->GetXaxis();
+                   //cout<<ax0[j]->GetXmin()<<endl;
+                   histolist[j][i]->GetXaxis()->SetLimits(stacks[j]->GetXaxis()->GetXmin(), stacks[j]->GetXaxis()->GetXmax());
+                   }
+                   updateHisto(histolist[j],i,name_,norm,c->cd(j+1)->GetLogy())->Draw("HIST SAME");
+                   if(i==0){
+                       histolist[j][i]->GetXaxis()->SetTitle(str2char(paramList[j]));
+                   }
+
+               }
+
+
+           }
+           if(legendPad==1)c->AddLegendEntry(h1[i],name_, "f");
+       }
+       c->Update();
+
+       if(legendPad==1){
+           c->cd(6);
+           TLegend *legend = c->GetLegend();
+           legend->Draw();
        }
 
        
 
        if(plot2){
+           H1[i] = new TH2D("", "", 6, 0, 0, 5, 0, 4);
+           H2[i] = new TH2D("", "", 30, 0, 100, 5, 0, 4);
            draw_2D_histos(c2, H1[i], H2[i], out, name, i, xsec);
-           H1[i] = new TH2D("", "", 30, 0, 0, 30, 0, 0);
-           H2[i] = new TH2D("", "", 30, 0, 0, 30, 0, 0);
-       }
-       if(plot3 && i < 2){
-
-            hscans[i][0] = new TH1D("","",50,0,0);
-            hscans[i][1] = new TH1D("","",50,0,0);
-            hscans[i][2] = new TH1D("","",50,0,0);
-            hscans[i][3] = new TH1D("","",50,0,0);
-            hscans[i][4] = new TH1D("","",50,0,0);
        }
 
-       //cout<<name_<<endl;
 
 
        vector<int> tempCuts;
@@ -605,18 +744,44 @@ void combinedHisto(){
     }
     
     if(plot3){
+        hscans1[0] = new TH1D("","",50,0,0);
+        hscans1[1] = new TH1D("","",50,0,0);
+        hscans1[2] = new TH1D("","",50,0,0);
+        hscans1[3] = new TH1D("","",50,0,0);
+        hscans1[4] = new TH1D("","",50,0,0);
         
-        scanParameter(c3, hscans[0], hscans[1], outputs[0], outputs[1], names[0], names[1], (xsecs[0]/xsecs[1])*events[1]/events[0], legend);
-        hscans[0][0]->SetTitle(str2char(param1));
-        hscans[1][0]->SetTitle(str2char(param1));
+        hscans2[0] = new TH1D("","",50,0,0);
+        hscans2[1] = new TH1D("","",50,0,0);
+        hscans2[2] = new TH1D("","",50,0,0);
+        hscans2[3] = new TH1D("","",50,0,0);
+        hscans2[4] = new TH1D("","",50,0,0);
+
+ 
+        scanParameter(c3, hscans1, hscans2, outputs[0], outputs[1], names[0], names[1], (xsecs[0]/xsecs[1])*events[1]/events[0], legend);
+        hscans1[0]->SetTitle(str2char(param1));
+        hscans2[0]->SetTitle(str2char(param1));
         //legend->AddEntry(hscan2d[i], name_, "p");
         c3->cd(4);
         legend->Draw();
         c3->Update();    
     }
+
+    TLine *l1, *l2;
+    if(plot1 && plot4){
+        l1 = new TLine(15,0,15,10e9);
+        l1->SetLineColor(1);
+        l1->Draw();
+        //l2 = new TLine(0,0,110,10e9);
+        //l2->SetLineColor(1);
+        //l2->Draw();
+        c->cd(1)->RedrawAxis();
+        c->Update();
+    }
+
     
-    if(plot1){
+    /*if(!plot4){
         c->cd(6); 
+        TLegend *legend = c->GetLegend();
         legend->Draw();
         std::string foutName;
         for(int i = 0; i < paramList.size();i++){
@@ -625,8 +790,8 @@ void combinedHisto(){
         foutName += ".pdf";
 //c->Print(str2char(foutName));
     
-        saveJSON("testi",names,pList, cutPoints);
-    }
+       // saveJSON("testi",names,pList, cutPoints);
+   */ 
     return;
 
 }

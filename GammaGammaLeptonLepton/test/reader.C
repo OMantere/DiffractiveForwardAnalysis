@@ -3,6 +3,7 @@
 #include "Canvas.h"
 #include "TH1.h"
 #include "TLorentzVector.h"
+#include "mt2.h"
 
 #include <iostream>
 #include <algorithm>
@@ -50,15 +51,28 @@ double smeared(double q) {
 }
 
 char delimiter = ',';
-int max_events = 1000000;
+int max_events = 7500000;
+int max_protons = 100000;
 int max_vars = 75;
 int n_vars = 0;
 int n_rows = 0;
-vector<vector<double>> var_v(max_events, vector<double>(max_vars));
-std::map<string, int> var_map;
-vector<std::pair<string, int>> keypairs;
-vector<char*> keys;
+double e_mass, mumass, Chi10mass;
 
+string type;
+
+default_random_engine generator;
+uniform_int_distribution<int> proton_random;
+
+vector <vector<double>> var_v(max_events, vector<double>(max_vars));
+std::map<string, int> var_map;
+vector <std::pair<string, int>> keypairs;
+vector<char *> keys;
+vector <TLorentzVector> l_protons(max_protons);
+vector <TLorentzVector> r_protons(max_protons);
+int total_acc = 0;
+int total_pairs = 0;
+double low_xi_acc = 6500 * (1 - 0.15);
+double high_xi_acc = 6500 * (1 - 0.02);
 void store_var(string name, double val) {
   if(var_map.count(name) == 0) {
     var_map.insert(std::pair<string,int>(name,n_vars));
@@ -67,10 +81,66 @@ void store_var(string name, double val) {
   var_v[n_rows][var_map.find(name)->second] = val;
 }
 
-void write_csv(const char* csv_filename) {
-  ofstream ofs(csv_filename, ofstream::out); 
-  for(int j = 0; j < n_vars; j++) {
-    ofs << keys[j] << delimiter << "\n";
+
+void read_protons(const char *proton_filename = "acc_events.csv") {
+    ifstream ifs(proton_filename);
+    string line;
+    long long i = -1;
+    double pt, eta, phi, e;
+    bool left_proton = false;
+    bool right_proton = false;
+    while (ifs >> line) {
+        if (i == max_protons) break;
+        if (line != "event" && (!left_proton || !right_proton)) {
+            pt = stod(line);
+            ifs >> eta;
+            ifs >> phi;
+            ifs >> e;
+            if (eta < 0) {
+                l_protons[i].SetPtEtaPhiE(pt, eta, phi, e);
+                left_proton = true;
+            } else {
+                r_protons[i].SetPtEtaPhiE(pt, eta, phi, e);
+                right_proton = true;
+            }
+        } else if (line == "event") {
+            left_proton = right_proton = false;
+            i++;
+        }
+    }
+    cout << "Added " << (i + 1) << " proton events from file " << proton_filename << endl;
+    proton_random = uniform_int_distribution<int>(0, i);
+    ifs.close();
+}
+
+
+double MT2(TLorentzVector l1, TLorentzVector l2) {
+  double visible_mass;
+  if(type == "Muon")
+      visible_mass = mumass;
+  else
+      visible_mass = e_mass;
+  TLorentzVector pair = l1+l2;
+  asymm_mt2_lester_bisect::disableCopyrightMessage();
+  return asymm_mt2_lester_bisect::get_mT2(
+      visible_mass, l1.Px(), l1.Py(),
+      visible_mass, l2.Px(), l2.Py(),
+      -pair.Px(), -pair.Py(),
+      Chi10mass, Chi10mass);
+}
+
+
+pair <TLorentzVector, TLorentzVector> get_diffraction_protons() {
+    int i = proton_random(generator);
+    return make_pair(l_protons[i], r_protons[i]);
+}
+
+
+
+void write_csv(const char *csv_filename) {
+    ofstream ofs(csv_filename, ofstream::out); 
+    for (int j = 0; j < n_vars; j++) {
+        ofs << keys[j] << delimiter << "\n";
   }
   for(int i = 0; i < n_rows; i++) {
     for(int j = 0; j < n_vars; j++) {
@@ -83,7 +153,6 @@ void write_csv(const char* csv_filename) {
 void reader(const char* c_name = "elastic", const char* fout = "computed")
 {
   string name(c_name);
-  //cout << "SES VITTU SAATANA PERKELE" << endl;
   string cfilename = name;
   string name2(fout);
   string cfilename2 = name2;
@@ -114,27 +183,40 @@ void reader(const char* c_name = "elastic", const char* fout = "computed")
 
   double* WmissA = new double[N];
   double* WggA = new double[N];
+ 
+  
 
   cout << "Entries: " << N << endl;
-  for ( unsigned long long i = 0; i < tree->GetEntriesFast(); ++i ) {
-  //for(unsigned long long i = 0; i < 500000; i++){
-    tree->GetEntry( i );
-    //cout << ">>> event " << i << endl;
-    /*cout << "- fired triggers:" << endl;
-    for ( const auto& hlt : *evt.HLT_Name ) {
-      cout << "  *) " << hlt << endl;
-    }*/
+  start_time();
+  if (true)
+      read_protons();  
+  if(N>500000) N = 500000;
+ 
 
-    TLorentzVector P1(0, 0, sqrt(pow(6500, 2) - pow(0.938, 2)), 6500); // P1, P2: Beam protons of energy 6500
-    TLorentzVector P2(0, 0,-sqrt(pow(6500, 2) - pow(0.938, 2)), 6500);
-    TLorentzVector p1, p2; // p1, p2: measured protons
-    TLorentzVector com(0, 0, 0, 13.e3);
-    p1.SetPtEtaPhiE(evt.GenProtCand_pt[0], evt.GenProtCand_eta[0], evt.GenProtCand_phi[0], evt.GenProtCand_e[0]);
-    p2.SetPtEtaPhiE(evt.GenProtCand_pt[1], evt.GenProtCand_eta[1], evt.GenProtCand_phi[1], evt.GenProtCand_e[1]);
+  for (unsigned long long i = 0; i < N; i++){
+  tree->GetEntry( i );
+  //cout << ">>> event " << i << endl;
+  /*cout << "- fired triggers:" << endl;
+  for ( const auto& hlt : *evt.HLT_Name ) {
+    cout << "  *) " << hlt << endl;
+  }*/
 
+  TLorentzVector P1(0, 0, sqrt(pow(6500, 2) - pow(0.938, 2)), 6500); // P1, P2: Beam protons of energy 6500
+  TLorentzVector P2(0, 0,-sqrt(pow(6500, 2) - pow(0.938, 2)), 6500);
+  TLorentzVector p1, p2; // p1, p2: measured protons
+  TLorentzVector com(0, 0, 0, 13.e3);
+  if (false) {
+      pair <TLorentzVector, TLorentzVector> protons = get_diffraction_protons();
+      p2 = protons.first;
+      p1 = protons.second;
+  } else {
+        p1.SetPtEtaPhiE(evt.GenProtCand_pt[0], evt.GenProtCand_eta[0], evt.GenProtCand_phi[0], evt.GenProtCand_e[0]);
+        p2.SetPtEtaPhiE(evt.GenProtCand_pt[1], evt.GenProtCand_eta[1], evt.GenProtCand_phi[1], evt.GenProtCand_e[1]);
+    }
 
     for ( unsigned int j = 0; j < evt.nPair; ++j ) {
       if ( fabs( evt.KalmanVertexCand_z[j] ) > 15. ) continue;
+      //cout << j << endl;
 
       const unsigned int l1 = evt.Pair_lepton1[j], l2 = evt.Pair_lepton2[j];
       double El1, El2;
@@ -162,8 +244,8 @@ void reader(const char* c_name = "elastic", const char* fout = "computed")
       // We don't have working photons for now
 //      pg1.SetPtEtaPhiE(evt.GenPhotCand_pt[0], evt.GenPhotCand_eta[0], evt.GenPhotCand_phi[0], evt.GenPhotCand_e[0]);
 //      pg2.SetPtEtaPhiE(evt.GenPhotCand_pt[1], evt.GenPhotCand_eta[1], evt.GenPhotCand_phi[1], evt.GenPhotCand_e[1]);
-      xip = (P1.Pz() - p1.Pz())/P1.Pz();
-      xim = (P2.Pz() - p2.Pz())/P2.Pz();
+      double xipProt = (P1.Pz() - p1.Pz())/P1.Pz();
+      double ximProt = (P2.Pz() - p2.Pz())/P2.Pz();
       pg1 = P1 - p1;
       pg2 = P2 - p2;
       Wgg = 2 * sqrt(pg1.E()*pg2.E());
@@ -243,11 +325,14 @@ void reader(const char* c_name = "elastic", const char* fout = "computed")
       store_var("ptTot", ptTot);
       store_var("xip", xip);
       store_var("xim", xim);
+      store_var("xipProt", xipProt);
+      store_var("ximProt", ximProt);
 
       store_var("minDist", dd);
 
       double deltaR = sqrt(pow(evt.MuonCand_eta[l2] - evt.MuonCand_eta[l1], 2) + pow(evt.MuonCand_phi[l2] - evt.MuonCand_phi[l1], 2));
 
+      double deltaEta = evt.MuonCand_eta[l2] - evt.MuonCand_eta[l1];
 
       double ptl1l2 = sqrt(lep_pair.Px()*lep_pair.Px() + lep_pair.Py()*lep_pair.Py());
       double ptl1l2Check = lep_pair.Pt();
@@ -267,7 +352,7 @@ void reader(const char* c_name = "elastic", const char* fout = "computed")
       double l1Phi = pl1.Phi();
       double l2Phi = pl2.Phi();
 
-      double a = 1 - pair_dphi/M_PI;
+      double a = 1 - abs(pair_dphi)/M_PI; // a = pair_aco
       double slMass = (pg1 + pg2).M();
 
       double detA = (pl1.Px()*pl2.Py() - pl2.Px()*pl1.Py());
@@ -285,8 +370,10 @@ void reader(const char* c_name = "elastic", const char* fout = "computed")
       double xi4 = 1/detA*(lep_pair.Px()*pl1.Py()-lep_pair.Py()*pl2.Px());
       double xi5 = lep_pair.Px()*pl1.Py()-lep_pair.Py()*pl1.Px();
 
+
       //cout << xi1 << ", " << xi2 << endl;
       store_var("deltaR", deltaR);
+      store_var("deltaEta", deltaEta);
       store_var("ptl1l2", ptl1l2);
       store_var("ptl1", ptl1);
       store_var("ptl2", ptl2);
@@ -322,6 +409,12 @@ void reader(const char* c_name = "elastic", const char* fout = "computed")
       store_var("trackiso", trackiso);
       store_var("ecaliso", ecaliso);
       store_var("hcaliso", hcaliso);
+
+
+      double mt2 = MT2(pl1, pl2);
+
+      store_var("mt2", mt2);
+
 
       n_rows++;
     }
