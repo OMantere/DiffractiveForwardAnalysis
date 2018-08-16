@@ -375,6 +375,10 @@ void reader(const char *c_name = "elastic", const char *out_name = 0) {
             store_var("eta2", eta2);
             store_var("pt1", pt1);
             store_var("pt2", pt2);
+            store_var("mcmother1", evt.MuonCand_mcmotherid[l1]);
+            store_var("mcmother2", evt.MuonCand_mcmotherid[l1]);
+            store_var("mcid1", evt.MuonCand_mcid[l1]);
+            store_var("mcid2", evt.MuonCand_mcid[l1]);
             store_var("deltaR", deltaR);
             store_var("Et", Et);
             store_var("xip", xip);
@@ -384,10 +388,18 @@ void reader(const char *c_name = "elastic", const char *out_name = 0) {
             store_var("Pt", lep_pair.Pt());
             store_var("Mt", sqrt(lep_pair.E() * lep_pair.E() - lep_pair.Pz() * lep_pair.Pz()));
             store_var("mt2_100", mt2);
+            store_var("trackiso1", evt.MuonCand_trackiso[l1]);
+            store_var("ecaliso1", evt.MuonCand_trackiso[l1]);
+            store_var("hcaliso", evt.MuonCand_hcaliso[l1]);
+            store_var("trackiso1", evt.MuonCand_trackiso[l2]);
+            store_var("ecaliso1", evt.MuonCand_trackiso[l2]);
+            store_var("hcaliso1", evt.MuonCand_hcaliso[l2]);
+
 //            store_var("HTlep", HTlep);
 //            store_var("EtmissOverHTlep", Etmiss / HTlep);
 //            store_var("atlasCut1", max((double) 3, 15 - 2 * (mt2 - chi10_mass)));
             store_var("Etmiss", Etmiss);
+            store_var("Etmiss_significance", evt.Etmiss_significance);
             double Wslep = slep_pair.M();
             store_var("Wslep", Wslep);
 //            store_var("Wtot", 2 * lep_pair.E());

@@ -662,7 +662,7 @@ namespace ggll
           tree->SetBranchAddress( "MuonCand_innerTrackVtxz", MuonCand_innerTrackVtxz );
           tree->SetBranchAddress( "MuonCand_trackiso", MuonCand_trackiso);
           tree->SetBranchAddress( "MuonCand_ecaliso", MuonCand_ecaliso);
-          tree->SetBranchAddress( "MuonCand_hcaliso", MuonCand_hcaliso);
+          tree->SetBranchAddress( "MuonCand_hcalkiso", MuonCand_hcaliso);
           if ( mc ) {
             tree->SetBranchAddress( "nGenMuonCand", &nGenMuonCand );
             tree->SetBranchAddress( "nGenMuonCandOutOfAccept", &nGenMuonCandOutOfAccept );

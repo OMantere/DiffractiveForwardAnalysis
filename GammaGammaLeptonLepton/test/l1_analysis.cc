@@ -1,11 +1,19 @@
 #include <time.h>
 #include "TH1.h"
-#include "THStack.h"
-#include "TLine.h"
-#include "TText.h"
 #include <string>
 #include <iomanip> // setprecision
 #include <sstream> // stringstream
+#include "THStack.h"
+#include "TLegend.h"
+#include "TLine.h"
+#include "TFile.h"
+#include "TCanvas.h"
+#include "TText.h"
+#include <bits/stdc++.h>
+#include "TStyle.h"
+#include "TTree.h"
+
+using namespace std;
 
 
 double lhc_lumi = 50;
@@ -30,6 +38,7 @@ double signal_crossx = lm1mur_crossx;
 double ctpps_timing_reduction = 1.0 / 95.3901;
 double ctpps_signal_loss = 0.157299;
 
+TStyle* gStyle;
 
 clock_t start = clock(), diff;
 
@@ -72,10 +81,14 @@ public:
                                                                               up_plot(pup), plot(true) {};
 
     VariableCut(string var, double plow, double pup) : variable(var), low_plot(plow), up_plot(pup), low_bound(-DBL_MAX),
-                                                       up_bound(DBL_MAX), plot(true) {};
+                                                       up_bound(DBL_MAX), plot(true) {
+        is_cut = false;
+    };
 
     VariableCut(string var) : variable(var), low_bound(-DBL_MAX), up_bound(DBL_MAX), low_plot(0), up_plot(1000),
-                              plot(true) {};
+                              plot(true) {
+        is_cut = false;
+    };
     string variable;
     double low_bound;
     double up_bound;
@@ -83,6 +96,7 @@ public:
     double up_plot;
     bool plot;
     bool inverted = false;
+    bool is_cut = true;
 
     bool pass(double val) {
         if (inverted)
@@ -273,17 +287,18 @@ vector <vector<double>> pass_frac;
 vector <vector<double>> pass_frac_orig;
 vector <vector<TH1F *>> histos;
 int n_plots = 0;
-
+map<string, string> disp_names;
 void plot_hist_legend(int j, vector<Sample *> samples) {
     auto hist_legend = new TLegend(0.65, 0.5, 0.89, 0.87);
-    hist_legend->SetHeader("After cut", "C");
+//    hist_legend->SetHeader("After cut", "C");
     hist_legend->SetTextSize(0.07);
     hist_legend->SetBorderSize(0);
     for (int k = 0; k < n_files; k++) {
         double pass_fraction = pass_frac[k][j + 1];
         if (j == n_vars - 1)
             pass_fraction = pass_frac[k][j];
-        char *str = strdup((samples[k]->short_legend + ": " + to_str(pass_fraction * 100, 3) + " %").c_str());
+//        char *str = strdup((samples[k]->short_legend + ": " + to_str(pass_fraction * 100, 3) + " %").c_str());
+        char *str = strdup((samples[k]->short_legend).c_str());
         if (samples[k]->line)
             hist_legend->AddEntry(histos[k][0], str, "l");
         else
@@ -354,11 +369,11 @@ public:
                 t->GetEntry(j);
                 bool cut_out = false;
                 for (int k = 0; k < n_vars; k++) {
-                    histos[i][k]->Fill(val_map.find(cuts[k].variable)->second);
                     if(cuts[k].pass(val_map.find(cuts[k].variable)->second))
                         passed_orig[i][k]++;
                     if(cut_out)
                         continue;
+                    histos[i][k]->Fill(val_map.find(cuts[k].variable)->second);
                     if (propagate) {
                         passed[i][k]++;
                         if (!cuts[k].pass(val_map.find(cuts[k].variable)->second))
@@ -375,6 +390,12 @@ public:
     }
 
     void run() {
+        disp_names["Wlep"] = "Dilepton invariant mass";
+        disp_names["Pt"] = "Dilepton tranverse momentum";
+        disp_names["pt1"] = "Leading lepton transverse momentum";
+        disp_names["pair_aco"] = "Dilepton acoplanarity";
+        disp_names["mt2_100"] = "MT2";
+        disp_names["extratracks2"] = "Extra track veto";
         if (scales.size() > samples.size()) {
             cout << "There are more scale factors than samples" << endl;
             return;
@@ -462,12 +483,15 @@ public:
 
         for(int i = 0; i < n_files; i++) {
             cout << "Individual cut information for sample " << files[i] << "..." << endl;
-            for (int j = 0; j < n_vars; j++) {
+            for (int j = 0; j < n_vars - 1; j++) {
+                if(!cuts[j].is_cut)
+                    continue;
                 cout << "==> Cut " << cuts[j].variable.c_str() << " was " << to_string((1.0 - pass_frac_orig[i][j]) * 100);
                 cout << " % effective!" << endl;
             }
+            cout << endl;
         }
-        cout << endl << endl;
+        cout << endl;
 
         canvas->Divide(1, n_plots + 1);
         canvas->cd(1);
@@ -479,10 +503,11 @@ public:
                 continue;
             canvas->cd(i_plt + 2);
             int k = 0;
+            if(disp_names.count(cuts[j].variable) > 0)
+                sh[j]->SetTitle(disp_names[cuts[j].variable].c_str());
             if (sh[j]->GetNhists() == 0) {
                 histos[0][j]->SetStats(0);
                 histos[0][j]->SetMaximum(h_max[j] + h_max[j] * 0.1);
-                histos[0][j]->SetTitle(cuts[j].variable.c_str());
                 histos[0][j]->Draw("HIST");
                 k = 1;
             } else {
@@ -637,14 +662,26 @@ Analysis *pt_analysis = new Analysis(
         "pt_analysis"
 );
 
-//VariableCut("mt2_100", 0, 122, 100, 200),
-//        VariableCut("pt1", 10, 50, 0, 100),
-//        VariableCut("pt2", 6, 40, 0, 60),
-//        VariableCut("Pt", 0, 44, 0, 100),
-//        VariableCut("Wlep", 0, 150),
+Analysis *slide_analysis = new Analysis(
+        all_samples,
+        {1000},
+        {
+//            VariableCut("extratracks2", -1, 3, 0, 100),
+//            VariableCut("mt2_100", 100, 200),
+            VariableCut("pt1", 15, DBL_MAX, 0, 100, false),
+            VariableCut("Pt", 27, 55, 0, 100, false),
+            VariableCut("pair_aco", 0.3, DBL_MAX, 0, 1, false),
+            VariableCut("Wlep", 0, 76, 0, 120, false),
+            VariableCut("mt2_100", 100, 123, 100, 150),
+            VariableCut("extratracks2", -1, 3, 0, 100),
+//            VariableCut("Wlep", 0, 76),
+        },
+        {true},
+        "pt_analysis"
+);
 
 
-void l1_analysis() {
+int main() {
     slr2->background = false;
     slr2full->background = false;
     slr2full_lm6->background = false;
@@ -652,8 +689,10 @@ void l1_analysis() {
 //    all_analysis_new->run();
 //    all_analysis_new2->run();
 //    all_analysis_eta->run();
-    all_analysis_kristian->run();
+//    all_analysis_kristian->run();
+      slide_analysis->run();
 //    test_vars->run();
 //    pt_analysis->run();
+    return 0;
 }
 

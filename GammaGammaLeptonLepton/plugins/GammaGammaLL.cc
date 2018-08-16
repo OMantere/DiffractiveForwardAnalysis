@@ -282,13 +282,13 @@ GammaGammaLL::analyzeMCEventContent( const edm::Event& iEvent )
       evt_.nGenChi10Cand++;
     }
 
-    // check the particles out of acceptance
-    if ( genPart->pt() < minPtMC_ || ( minEtaMC_ != -1. && fabs( genPart->eta() ) > minEtaMC_ ) ) {
-      if ( fabs( genPart->pdgId() ) == 13 ) evt_.nGenMuonCandOutOfAccept++;
-      if ( fabs( genPart->pdgId() ) == 11 ) evt_.nGenEleCandOutOfAccept++;
-      if ( fabs( genPart->pdgId() ) == 22 ) evt_.nGenPhotCandOutOfAccept++;
-      if ( genPart->pdgId() != 2212 ) continue; // we keep the forward protons
-    }
+//    // check the particles out of acceptance
+//    if ( genPart->pt() < minPtMC_ || ( minEtaMC_ != -1. && fabs( genPart->eta() ) > minEtaMC_ ) ) {
+//      if ( fabs( genPart->pdgId() ) == 13 ) evt_.nGenMuonCandOutOfAccept++;
+//      if ( fabs( genPart->pdgId() ) == 11 ) evt_.nGenEleCandOutOfAccept++;
+//      if ( fabs( genPart->pdgId() ) == 22 ) evt_.nGenPhotCandOutOfAccept++;
+//      if ( genPart->pdgId() != 2212 ) continue; // we keep the forward protons
+//    }
 
     // generated outgoing protons
     if ( genPart->pdgId() == 2212 && evt_.nGenProtCand < ggll::AnalysisEvent::MAX_GENPRO ) {
@@ -413,13 +413,13 @@ GammaGammaLL::fetchMuons( const edm::Event& iEvent )
   for ( unsigned int i = 0; i < muonColl->size() && evt_.nMuonCand < ggll::AnalysisEvent::MAX_MUONS; ++i ) {
     const edm::Ptr<pat::Muon> muon = muonColl->ptrAt( i);
 
-    cout << muon->simPdgId() << " "  << muon->simMotherPdgId() << " ";
+//    cout << muon->simPdgId() << " "  << muon->simMotherPdgId() << " ";
 
     if(muon->pt() < minPtMC_ || (minEtaMC_ != -1. && fabs(muon->eta() ) > minEtaMC_)) { // PT and eta cuts for PAT muons too
       cout << endl;
       continue;
     }
-    cout << "accepted" << endl;
+//    cout << "accepted" << endl;
 
     evt_.MuonCand_pt[evt_.nMuonCand] = muon->pt();
     evt_.MuonCand_eta[evt_.nMuonCand] = muon->eta();
@@ -900,10 +900,10 @@ GammaGammaLL::newTracksInfoRetrieval( int l1id, int l2id )
       nPrimaryAcc_++;
     }
     // We have accepted a non-signal muon
-    if (fabs(evt_.MuonCand_mcmotherid[l1id]) == 2000013) {
+    if (fabs(evt_.MuonCand_mcmotherid[l1id]) == 23) {
       nSignalAcc_++;
     }
-    if (fabs(evt_.MuonCand_mcmotherid[l2id]) == 2000013) {
+    if (fabs(evt_.MuonCand_mcmotherid[l2id]) == 23) {
       nSignalAcc_++;
     }
   }
@@ -930,8 +930,9 @@ GammaGammaLL::endJob()
   if(runOnMC_) {
     std::cout << "==> Number of accepted leptons : " << nCandidates_ * 2<< std::endl;
     std::cout << "==> Number of accepted primary leptons : " << nPrimaryAcc_ << std::endl;
+    std::cout << "==> Number of accepted signal leptons : " << nSignalAcc_ << std::endl;
     std::cout << "==> Non-primary rate : " << (1.0 - (double) nPrimaryAcc_ / ((double) nCandidates_ * 2)) << std::endl;
-    std::cout << "==> Signal efficiency : " << ((double)nSignalAcc_ / ((double)nCandidates_ * 2)) << std::endl;
+    std::cout << "==> Non-prompt rate : " << (1.0 - (double)nSignalAcc_ / ((double)nCandidates_ * 2)) << std::endl;
   }
 }
 
