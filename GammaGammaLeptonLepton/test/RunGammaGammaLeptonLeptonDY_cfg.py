@@ -3,7 +3,7 @@ import FWCore.ParameterSet.Config as cms
 process = cms.Process("ggll")
 
 runOnMC = True
-useAOD = True # AOD or MiniAOD?
+useAOD = False # AOD or MiniAOD?
 
 #########################
 #    General options    #
@@ -22,8 +22,13 @@ process.source = cms.Source("PoolSource",
     fileNames = cms.untracked.vstring(
 #'/store/data/Run2016G/DoubleEG/AOD/23Sep2016-v1/100000/0042DBD3-BA8E-E611-919E-002481ACDAA8.root',
 #'file:/afs/cern.ch/user/j/jmantere/private/cms/CMSSW_9_2_3/src/ww_1k.root',
-"/store/mc/RunIIFall17DRPremix/DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8/AODSIM/PU2017RECOPF_94X_mc2017_realistic_v11-v1/50000/FEFA3BA6-9B67-E811-8CAE-0025905A6092.root"
+#"/store/mc/RunIIFall17DRPremix/DYJetsToLL_M-50_TuneCP5_13TeV-amcatnloFXFX-pythia8/AODSIM/PU2017RECOPF_94X_mc2017_realistic_v11-v1/50000/FEFA3BA6-9B67-E811-8CAE-0025905A6092.root"
+#"/store/mc/RunIISpring15DR74/WWTo2L2Nu_13TeV-powheg/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v1/50000/082EF100-DC05-E511-AD3F-A0040420FE80.root"
+#"das:/store/mc/RunIISpring15DR74/WWTo2L2Nu_13TeV-powheg/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v1/50000/1A158D26-E005-E511-BD80-00074305CDC0.root"
+#/store/mc/RunIISpring15DR74/WWTo2L2Nu_13TeV-powheg/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v1/50000/D897FFC1-DC05-E511-A633-00259073E4F6.root"
+#"/store/mc/RunIIFall17DRPremix/WWTo2L2Nu_NNPDF31_TuneCP5_PSweights_13TeV-powheg-pythia8/AODSIM/PU2017_94X_mc2017_realistic_v11_ext1-v1/30000/00A1CAD7-A725-E811-8C49-0025907D24F0.root"
 #FILEIN
+"/store/mc/RunIISpring15DR74/TTTo2L2Nu_13TeV-powheg/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v1/70000/FCD6EB31-BE05-E511-A0DF-00074305D00A.root"
     ),
     #firstEvent = cms.untracked.uint32(0)
 )
@@ -132,7 +137,7 @@ process.ggll_aod.phoIdLabels = cms.PSet(
 
 # prepare the output file
 process.TFileService = cms.Service('TFileService',
-    fileName = cms.string("dy.root"),
+    fileName = cms.string("ttbar.root"),
     closeFileFast = cms.untracked.bool(True)
 )
 

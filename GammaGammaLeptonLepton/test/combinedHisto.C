@@ -19,7 +19,7 @@ std::string line;
 
 double d1,d2,d3,d4,d5;
 int nPads = 0;
-//int Colorlist[] = {600, 632, 416, 880, 432, 860, 900};
+int ColorlistDef[] = {600, 632, 416, 880, 432, 860, 900};
 vector<int> Colorlist;
 std::string datafold = "/afs/cern.ch/work/k/karjas/private/dataFold/";
 double plm, pslm, rapiditysl, rapidityl1l2;
@@ -27,21 +27,24 @@ double plm, pslm, rapiditysl, rapidityl1l2;
 bool plot1 = true;
 bool plot2 = false;
 bool plot3 = false;
-bool plot4 = false;
+bool plot4 = true;
 
 bool logScale = true; 
 int legendPad = 0;
 
 // SELECT PARAMETERS HERE
 
-vector<std::string> paramList = {"ptl1", "pair_aco", "mt2", "ptl1l2", "Wlep","nPrimTracks","trackiso", "ptl2", "ecaliso","pair_dphi","deltaR","deltaEta", "ptTot","eta1", "eta2","xi11", "xi21", "invdetA","xi3", "ptMiss", "pair_mass","xim", "xip"};
+vector<std::string> paramList = {"ptl1","ptl1l2", "pair_aco","mt2", "Wlep", "nPrimTracks","ptl2", "ecaliso","deltaEta", "pair_dphi","deltaR","ximProt","xipProt","Wgg", "Emiss", "trackiso",  "ptTot","eta1", "eta2","xi11", "xi21", "invdetA","xi3", "ptMiss", "pair_mass"};
+
+
+
 vector<int> lowbounds = {0,0,0,0,0,0};
-vector<int> upbounds = {220, 1, 100, 200, 400, 100};
-vector<string> units = {"[GeV]","" ,"[GeV]","[GeV]","[GeV]",""};
+vector<double> upbounds = {360, 260, 1, 100, 400, 100};
+    vector<string> units = {"[GeV]","[GeV]","" ,"[GeV]","[GeV]",""};
 
 
-string param1="mt2";
-string param2="ptl1l2";
+string param1="xipProt";
+string param2="ximProt";
 
 TTree *tree;
 
@@ -72,6 +75,7 @@ vector<string> fileloader(){
 }
 
 void setParamRange(Parameter *pList[], string name, double low, double high, bool incl){
+
     for(int i = 0; i < paramList.size(); i++){
         if(pList[i]->pNam == name){
             //cout << name << endl;
@@ -90,17 +94,20 @@ void setParamRange(Parameter *pList[], string name, double low, double high, boo
 
 void setRanges(Parameter *pList[]){
 //    setParamRange(pList, "trackiso", -1, 0.1);
-//    setParamRange(pList, "eta1", -0.6, 3);
-//    setParamRange(pList, "ptl2", 10, 60, true);
+    setParamRange(pList, "eta1", -2.4, 2.4,true);
+    setParamRange(pList, "eta2", -2.4, 2.4, true);
+    setParamRange(pList, "ptl2", 7, 1000, true);
     setParamRange(pList, "Wlep", 10,76, true);
     setParamRange(pList, "nPrimTracks",2, 2, true);
+    setParamRange(pList, "Wgg", 236, 1000, true);
     setParamRange(pList, "pair_aco", 0.3, 1, true);
-    setParamRange(pList, "ptl1l2", 27, 55, true);
+    setParamRange(pList, "ptl1l2", 17, 55, true);
     setParamRange(pList, "ptl1", 10, 1000, true);
-    setParamRange(pList, "mt2", 10, 40, true);
+    setParamRange(pList, "mt2", 10, 42, true);
+    setParamRange(pList, "Emiss", 196, 4000, true);
 //    setParamRange(pList, "trackiso", 0, 0.1);
-//    setParamRange(pList, "xip", 0.03, 0.15);
-//    setParamRange(pList, "xim", 0.03, 0.15);
+    setParamRange(pList, "xipProt", 0.015, 0.15,true);
+    setParamRange(pList, "ximProt", 0.015, 0.15,true);
 //    setParamRange(pList, "deltaR",0, 3);
     
 //    setParamRange(pList, "pair_dphi", -2,2);
@@ -132,14 +139,23 @@ void rescaleY(TH1D *h, TH1D *h2, int log){
     return;
 }
 
-bool cuts(Parameter *pList[]){
+bool cuts(Parameter *pList[], vector<int> idx){
    
+    vector<int>  idx_;
+
+    if(idx[0]==-1){
+        for(int i = 0; i<paramList.size();i++){
+            idx_.push_back(i);
+        }
+    } else idx_=idx;
+
+
 
     bool pass = true;
 
-    for(int i=0; i<paramList.size(); i++){
-        double *val = pList[i]->pAdd;
-        if(!pList[i]->cut(*val)){
+    for(int i=0; i < idx_.size(); i++){
+        double *val = pList[idx_[i]]->pAdd;
+        if(!pList[idx_[i]]->cut(*val)){
             pass = false;
         }
     }
@@ -179,7 +195,7 @@ void setHistoBins(TH1D **h, int N, double min, double max){
 
 bool mysort(std::pair<double,double> p1, std::pair<double,double> p2) {return p1.second<p2.second; }
 
-void scanParameter(TCanvas *c, TH1D* h1[], TH1D* h2[],
+void scanParameter(TCanvas *c, TMultiGraph *gra, int id,
         string foldstr1, string foldstr2, 
         string data_name1, string data_name2, 
         double Norm, TLegend *legend){
@@ -249,8 +265,8 @@ void scanParameter(TCanvas *c, TH1D* h1[], TH1D* h2[],
     cout << sortd1[0].first<<", "<<sortd1[N1-1].first<<endl;
 
 
-    setHistoBins(h1, 5, minX1, maxX1);
-    setHistoBins(h2, 5, minX2, maxX2);
+    //setHistoBins(h1, 5, minX1, maxX1);
+    //setHistoBins(h2, 5, minX2, maxX2);
     //setHistoBins(h1, 5, 0,0.1);
     //setHistoBins(h2, 5, 0,0.1);    
     
@@ -265,8 +281,11 @@ void scanParameter(TCanvas *c, TH1D* h1[], TH1D* h2[],
 
     int idx = 0;
     for(int k = 0; k < nSteps ; k++){
+        cout << k << endl;
         cutoff = k*step;
+        //cout << cutoff << " Cutoff"  << endl;
         double cutoffVal = sortd1[cutoff].second;
+        //cout << cutoffVal << endl;
         cutoffvals[k] = cutoffVal;
 
 
@@ -277,7 +296,7 @@ void scanParameter(TCanvas *c, TH1D* h1[], TH1D* h2[],
         while(sortd2[cutoff2].second < cutoffVal){
             cutoff2 += 1;
         }
-    
+   /* 
         if(k%10 == 0 && idx < 5){
             
             for(int ii = cutoff; ii < N1 ; ii++){
@@ -289,36 +308,48 @@ void scanParameter(TCanvas *c, TH1D* h1[], TH1D* h2[],
             }
             
             c->cd(1);
-            updateHisto(h1, idx, name1, 1, c->cd(1)->GetLogy());
+            h1[idx]->SetLineColor(ColorlistDef[idx]);
+            updateHisto(h1, idx, name1, 1, c->cd(1)->GetLogy())->Draw("HIST SAME");
+            h1[idx]->SetTitle(str2char(data_name1));
 
 
             c->cd(3);
-            updateHisto(h2, idx, name2, 1, c->cd(3)->GetLogy());
-            //h2[idx]->Draw("SAME");
+            h2[idx]->SetLineColor(ColorlistDef[idx]);
+            h2[idx] = updateHisto(h2, idx, name2, 1, c->cd(3)->GetLogy());
+            h2[idx]->Draw("HIST SAME");
+            h2[idx]->SetTitle(str2char(data_name2));
             string entry = param2 + ">" + std::to_string(sortd1[cutoff].second);
-            legend->AddEntry(h1[idx],str2char(entry),"l");
+    //        legend->AddEntry(h1[idx],str2char(entry),"l");
             idx += 1;
-        }
+        }*/
         cout<<(N1-cutoff)<<", "<<(N2-cutoff2)<<endl;
-        SB[k] = (1.0*(N1-cutoff)/(N2-cutoff2)*Norm);
+        SB[k] = (1.0/(N1-cutoff)*(N2-cutoff2)*Norm);
 
         
         
 
     }
     
-    TGraph* gr = new TGraph(nSteps, cutoffvals, SB);
-
+    TGraph *gr = new TGraph(nSteps, cutoffvals, SB);
+    //graphs[id] = gr;
     gr->SetTitle();
-    gr->GetYaxis()->SetTitle("S/B");
+
+    gra->Add(gr);
+    gr->SetMinimum(0);
     
     gr->GetXaxis()->SetTitle(str2char(param2+" cutoff"));
+    gr->SetLineColor(ColorlistDef[id]);
+    gr->GetYaxis()->SetTitle("S/B");
+    legend->AddEntry(gr, str2char(data_name2),"l");
 
-    c->cd(2);
-    gr->Draw();
+   // c->cd(1);
 
+
+    gr->Draw("");
+    c->Update();
 
     return;
+
 }
 void draw_2D_histos(TCanvas *c, TH2D *H1,
         TH2D *H2, string foldstr,
@@ -427,6 +458,11 @@ Canvas *draw_histos(Canvas *c,
     Parameter *pL2[2]={pList[2],pList[3]};
     Parameter *pL3[2]={pList[4],pList[5]};
 
+    vector<int> s1 = {0,3};
+    vector<int> s2 = {0,1,3,4};
+    vector<int> s3 = {0,1,2,3,4,5};
+    vector<int> s4 = {-1};
+
     int pass1 = 0;
     int pass2 = 0;
     int pass3 = 0;
@@ -447,9 +483,32 @@ Canvas *draw_histos(Canvas *c,
             
             }
         }*/
+        if(!plot4){
+        if(cuts(pList, s4)){
+            pass1 += 1;
+            histolist[0][id]->Fill(*p[0]);
+            histolist[3][id]->Fill(*p[3]);
+        }
+        if(cuts(pList, s4)){
+            pass2 += 1;
+            histolist[1][id]->Fill(*p[1]);
+            histolist[4][id]->Fill(*p[4]);
+        }
+        if(cuts(pList,s4)){
+            pass3+=1;
+            histolist[2][id]->Fill(*p[2]);
+            histolist[5][id]->Fill(*p[5]);
+        }
+    
+        }else{
+            if(cuts(pList,s4)){
+                histolist[0][id]->Fill(*p[0]);
+                pass3+=1;
+            }
+        }
     }
  
-    cout << "In " << data_name << " " << N - pass<<" out of " << N  << " (" << (N*1.-pass*1.)/N*100. << "%) events were cut" << endl;
+    cout << "In " << data_name << " " << N - pass3<<" out of " << N  << " (" << (N*1.-pass3*1.)/N*100. << "%) events were cut" << endl;
 
 
     for(int j=0;j<nPads - legendPad;j++){
@@ -543,9 +602,29 @@ int setColor(string str){
     if(foundWW!=npos){
         out = 600 -2;
     }
+    std::size_t founddiboson = str.find("WWjets");
+    if(founddiboson!=npos){
+        out = 600+3;
+    }
     std::size_t foundelastic = str.find("elastic");
     if(foundelastic!=npos){
         out = 616-2;
+    }
+    std::size_t foundBG = str.find("BG");
+    if(foundBG!=npos){
+        out = 632-2;
+    }
+    std::size_t foundLM6 = str.find("LM6");
+    if(foundLM6!=npos){
+        out = 880-2;
+    }
+    std::size_t foundm35 = str.find("m35");
+    if(foundm35!=npos){
+        out = 920;
+    }
+    std::size_t foundm5 = str.find("m5");
+    if(foundm5!=npos){
+        out = 922;
     }
     return out;
 }
@@ -572,7 +651,9 @@ void combinedHisto(){
     TH1D *h3[N];
     TH1D *h4[N];
     TH1D *h5[N];
-    TH1D **histolist[5]={h1,h2,h3,h4,h5};
+    TH1D *h6[N];
+    TH1D **histolist[6]={h1,h2,h3,h4,h5,h6};
+
 
     TH2D *H1[N];
     TH2D *H2[N];
@@ -580,16 +661,18 @@ void combinedHisto(){
     TH1D *hscans1[5];
     TH1D *hscans2[5];
 
+    TMultiGraph *graphs = new TMultiGraph();
 
     Parameter *pList[NParam];
     TLegend* legend;
 
     if(plot1){
         c = new Canvas("Testi");
-        if(!plot4) c->Divide(3,2);
+        if(!plot4) c->Divide(2,3);
         else c->Divide(1,1);
         c->SetLegendX1(0.62);
         nPads = countPads(c);
+        cout << nPads << endl;
         //c->AddLegendEntry((TObject*)0, "L","");
         //
     }
@@ -603,9 +686,9 @@ void combinedHisto(){
     if(plot3){
         cout << "How about here?"<<endl;
         c3 = new TCanvas("scanplots");
-        c3->Divide(2,2);
+       // c3->Divide(2,2);
 
-// legend = new TLegend (0.2, 0.2, 0.8, 0.8);
+        legend = new TLegend (0.75, 0.75, 0.9, 0.9);
     }
 
 
@@ -715,16 +798,24 @@ void combinedHisto(){
 
 
            }
-           if(legendPad==1)c->AddLegendEntry(h1[i],name_, "f");
+           //if(legendPad==1)c->AddLegendEntry(h1[i],name_, "f");
        }
-       c->Update();
 
+       if(i>0 && plot3){
+           cout << "Found this branch!" << endl;
+
+           scanParameter(c3, graphs, i, outputs[0], outputs[i], names[0], names[i],1, legend); 
+           c3->Update();
+
+       }
+       //c->Update();
+/*
        if(legendPad==1){
            c->cd(6);
            TLegend *legend = c->GetLegend();
            legend->Draw();
        }
-
+*/
        
 
        if(plot2){
@@ -743,7 +834,11 @@ void combinedHisto(){
 
     }
     
+    cout << "Got this far..?" << endl;
     if(plot3){
+        graphs->Draw();
+        legend->Draw();
+/*
         hscans1[0] = new TH1D("","",50,0,0);
         hscans1[1] = new TH1D("","",50,0,0);
         hscans1[2] = new TH1D("","",50,0,0);
@@ -755,25 +850,27 @@ void combinedHisto(){
         hscans2[2] = new TH1D("","",50,0,0);
         hscans2[3] = new TH1D("","",50,0,0);
         hscans2[4] = new TH1D("","",50,0,0);
-
- 
-        scanParameter(c3, hscans1, hscans2, outputs[0], outputs[1], names[0], names[1], (xsecs[0]/xsecs[1])*events[1]/events[0], legend);
-        hscans1[0]->SetTitle(str2char(param1));
-        hscans2[0]->SetTitle(str2char(param1));
+*/
+        //cout << "So far so good" << endl;
+        //scanParameter(c3, hscans1, hscans2, outputs[0], outputs[1], names[0], names[1], (xsecs[0]/xsecs[1])*events[1]/events[0]);
+        return;
+        //hscans1[0]->SetTitle(str2char(param1));
+        //hscans2[0]->SetTitle(str2char(param1));
         //legend->AddEntry(hscan2d[i], name_, "p");
-        c3->cd(4);
-        legend->Draw();
-        c3->Update();    
+        //c3->cd(4);
+        //c3->Update();    
     }
 
     TLine *l1, *l2;
     if(plot1 && plot4){
-        l1 = new TLine(15,0,15,10e9);
+        l1 = new TLine(0.03,0,0.03,10e9);
         l1->SetLineColor(1);
+        l1->SetLineWidth(2);
         l1->Draw();
-        //l2 = new TLine(0,0,110,10e9);
-        //l2->SetLineColor(1);
-        //l2->Draw();
+        l2 = new TLine(0.15,0,0.15,10e9);
+        l2->SetLineColor(1);
+        l2->SetLineWidth(2);
+        l2->Draw();
         c->cd(1)->RedrawAxis();
         c->Update();
     }

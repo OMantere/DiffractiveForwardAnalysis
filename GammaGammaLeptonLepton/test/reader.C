@@ -188,7 +188,7 @@ void reader(const char* c_name = "elastic", const char* fout = "computed")
 
   cout << "Entries: " << N << endl;
   start_time();
-  if (true)
+  if (false)
       read_protons();  
   if(N>500000) N = 500000;
  

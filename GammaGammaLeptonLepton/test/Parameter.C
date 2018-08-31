@@ -41,7 +41,7 @@ bool Parameter::cut(double val){
 
 int Parameter::printCuts(){
    if(cutPoints > 0){ 
-    cout << cutPoints <<" ("<< cutPoints*100.0/nPoints <<"\%)" << "\t points did not pass '" << low << " < " << pNam << " < "  << high << "'\t selection" << endl;
+    cout << cutPoints <<" ("<< cutPoints*100.0/nPoints/3 <<"\%)" << "\t points did not pass '" << low << " < " << pNam << " < "  << high << "'\t selection" << endl;
    }
     return cutPoints;
 }
